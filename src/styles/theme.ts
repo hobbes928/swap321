@@ -1,18 +1,33 @@
 // src/styles/theme.ts
-import { extendTheme } from '@chakra-ui/react'
+import { extendTheme } from '@chakra-ui/react';
+import { keyframes } from '@chakra-ui/react';
+
+const neonPulse = keyframes`
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+`;
 
 const theme = extendTheme({
   colors: {
     brand: {
-      50: '#E6FFFA',
-      100: '#B2F5EA',
-      500: '#319795',
-      900: '#234E52',
+      purple: '#800080',
+      indigo: '#4B0082',
+      darkBlue: '#191970',
+      cyan: '#00FFFF',
     },
   },
   fonts: {
     heading: 'Inter, sans-serif',
     body: 'Inter, sans-serif',
+  },
+  styles: {
+    global: {
+      body: {
+        bg: 'black',
+        color: 'white',
+      },
+    },
   },
   components: {
     Button: {
@@ -20,16 +35,32 @@ const theme = extendTheme({
         fontWeight: 'bold',
       },
       variants: {
-        solid: (props: { colorMode: string }) => ({
-          bg: props.colorMode === 'dark' ? 'brand.500' : 'brand.100',
-          color: props.colorMode === 'dark' ? 'white' : 'brand.900',
+        solid: {
+          bg: 'brand.purple',
+          color: 'white',
           _hover: {
-            bg: props.colorMode === 'dark' ? 'brand.600' : 'brand.200',
+            bg: 'brand.indigo',
           },
-        }),
+        },
+        outline: {
+          borderColor: 'brand.cyan',
+          color: 'brand.cyan',
+          _hover: {
+            bg: 'brand.cyan',
+            color: 'black',
+          },
+        },
+      },
+    },
+    Text: {
+      baseStyle: {
+        color: 'white',
       },
     },
   },
-})
+  animations: {
+    neonPulse: `${neonPulse} 2s infinite`,
+  },
+});
 
-export default theme
+export default theme;

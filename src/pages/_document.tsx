@@ -5,8 +5,8 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        {/* Add any additional head elements here */}
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link rel="icon" href="/favicon.ico" />
+        <title>Swap321 - P2P Crypto Exchange</title>
       </Head>
       <body>
         <Main />
