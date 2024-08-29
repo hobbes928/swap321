@@ -1,12 +1,17 @@
 // src/components/Layout/Header.tsx
 import React, { useState, useEffect } from 'react';
-import { Flex, Button, Image, HStack, Box, useDisclosure } from '@chakra-ui/react';
+import { Flex, Button, Image, HStack, Box, useDisclosure, Menu, MenuButton, MenuList, MenuItem, Avatar } from '@chakra-ui/react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import OpenOrderModal from '../Exchange/OrderForm';
+import SignInModal from '../Auth/SignInModal';
 
 const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [user, setUser] = useState(null);
+  const { isOpen: isOpenOrderOpen, onOpen: onOpenOrderOpen, onClose: onCloseOrderOpen } = useDisclosure();
+  const { isOpen: isSignInOpen, onOpen: onOpenSignIn, onClose: onCloseSignIn } = useDisclosure();
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,6 +21,14 @@ const Header: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleSignIn = (userData) => {
+    setUser(userData);
+  };
+
+  const handleSignOut = () => {
+    setUser(null);
+  };
 
   return (
     <>
@@ -34,13 +47,26 @@ const Header: React.FC = () => {
             <Image src="/logo.png" alt="Logo" boxSize="50px" />
           </Link>
           <HStack spacing={4}>
-            <Button variant="outline" onClick={onOpen}>Open Order</Button>
+            <Button variant="outline" onClick={onOpenOrderOpen}>Open Order</Button>
             <Button variant="outline">Contacts</Button>
-            <Button variant="solid">Sign In</Button>
+            {user ? (
+              <Menu>
+                <MenuButton as={Button} rounded={'full'} variant={'link'} cursor={'pointer'} minW={0}>
+                  <Avatar size={'sm'} src={user.avatar} />
+                </MenuButton>
+                <MenuList>
+                  <MenuItem onClick={() => router.push('/profile')}>Profile</MenuItem>
+                  <MenuItem onClick={handleSignOut}>Sign Out</MenuItem>
+                </MenuList>
+              </Menu>
+            ) : (
+              <Button variant="solid" onClick={onOpenSignIn}>Sign In</Button>
+            )}
           </HStack>
         </Flex>
       </Box>
-      <OpenOrderModal isOpen={isOpen} onClose={onClose} />
+      <OpenOrderModal isOpen={isOpenOrderOpen} onClose={onCloseOrderOpen} />
+      <SignInModal isOpen={isSignInOpen} onClose={onCloseSignIn} onSignIn={handleSignIn} />
     </>
   );
 };
