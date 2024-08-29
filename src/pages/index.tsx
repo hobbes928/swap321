@@ -1,10 +1,11 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, VStack, Container, Text, Heading, Image, Flex } from '@chakra-ui/react';
+import { Box, VStack, Container, Text, Heading, Image, Flex, useDisclosure } from '@chakra-ui/react';
 import Header from '../components/Layout/Header';
 import Footer from '../components/Layout/Footer';
 import { motion, useAnimation } from 'framer-motion';
 import { FaEthereum, FaDollarSign } from 'react-icons/fa';
 import Head from 'next/head';
+import OrderDetailsModal from '../components/Exchange/OrderBook';
 
 const MotionBox = motion(Box);
 
@@ -15,7 +16,7 @@ const generateRandomTime = (seed: number): string => {
   return `${hours}:${minutes}:${seconds}`;
 };
 
-const LiveOrder: React.FC<{ index: number; opacity: number }> = ({ index, opacity }) => {
+const LiveOrder: React.FC<{ index: number; opacity: number; onClick: () => void }> = ({ index, opacity, onClick }) => {
   const time = React.useMemo(() => generateRandomTime(index), [index]);
   const isCryptoToFiat = index % 2 === 0;
   const controls = useAnimation();
@@ -28,12 +29,14 @@ const LiveOrder: React.FC<{ index: number; opacity: number }> = ({ index, opacit
     <MotionBox
       initial={{ opacity: 0, y: 20 }}
       animate={controls}
-      transition={{ duration: 0.2, delay: index * 0.03 }} // Faster animation and shorter delay
+      transition={{ duration: 0.2, delay: index * 0.03 }}
       whileHover={{ scale: 1.05, boxShadow: "0px 0px 8px rgba(255,255,255,0.2)" }}
       bg="rgba(60, 60, 60, 0.6)"
       p={4}
       borderRadius="md"
       w="100%"
+      cursor="pointer"
+      onClick={onClick}
     >
       <Flex justifyContent="space-between" alignItems="center">
         <Text>0x1234...5678</Text>
@@ -61,6 +64,8 @@ const LiveOrder: React.FC<{ index: number; opacity: number }> = ({ index, opacit
 const HomePage: React.FC = () => {
   const [orders, setOrders] = useState(Array(20).fill(0));
   const ordersRef = useRef<HTMLDivElement>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -70,14 +75,14 @@ const HomePage: React.FC = () => {
 
         setOrders(prevOrders => 
           prevOrders.map((_, index) => {
-            const elementTop = top + index * 76; // Approximate height of each order
+            const elementTop = top + index * 76;
             const elementBottom = elementTop + 76;
 
             if (elementTop > viewportHeight || elementBottom < 0) {
-              return 0; // Fully faded out
+              return 0;
             } else {
               const visibilityPercentage = Math.min(1, (viewportHeight - elementTop) / 76);
-              return Math.max(0, visibilityPercentage); // Smoother fade-in
+              return Math.max(0, visibilityPercentage);
             }
           })
         );
@@ -85,9 +90,14 @@ const HomePage: React.FC = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Initial call to set initial visibility
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleOrderClick = (order) => {
+    setSelectedOrder(order);
+    onOpen();
+  };
 
   return (
     <>
@@ -141,11 +151,23 @@ const HomePage: React.FC = () => {
         <VStack ref={ordersRef} spacing={4} w="100%" maxW="2xl" mx="auto" pb="100px">
           <Text fontSize="xl" fontWeight="bold" color="gray.300">Live Orders</Text>
           {orders.map((opacity, index) => (
-            <LiveOrder key={index} index={index} opacity={opacity} />
+            <LiveOrder 
+              key={index} 
+              index={index} 
+              opacity={opacity} 
+              onClick={() => handleOrderClick({
+                id: index,
+                wallet: `0x1234...${index.toString().padStart(4, '0')}`,
+                type: index % 2 === 0 ? 'ETH_TO_USD' : 'USD_TO_ETH',
+                amount: (Math.random() * 10).toFixed(2),
+                time: generateRandomTime(index)
+              })}
+            />
           ))}
         </VStack>
         <Footer />
       </Box>
+      <OrderDetailsModal isOpen={isOpen} onClose={onClose} order={selectedOrder} />
     </>
   );
 };
