@@ -1,8 +1,8 @@
-import React from 'react';
-import { Box, VStack, Container, Text, Heading, Image } from '@chakra-ui/react';
+import React, { useRef, useEffect, useState } from 'react';
+import { Box, VStack, Container, Text, Heading, Image, Flex } from '@chakra-ui/react';
 import Header from '../components/Layout/Header';
 import Footer from '../components/Layout/Footer';
-import { motion } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import { FaEthereum, FaDollarSign } from 'react-icons/fa';
 import Head from 'next/head';
 
@@ -15,43 +15,80 @@ const generateRandomTime = (seed: number): string => {
   return `${hours}:${minutes}:${seconds}`;
 };
 
-const LiveOrder: React.FC<{ index: number }> = ({ index }) => {
+const LiveOrder: React.FC<{ index: number; opacity: number }> = ({ index, opacity }) => {
   const time = React.useMemo(() => generateRandomTime(index), [index]);
   const isCryptoToFiat = index % 2 === 0;
+  const controls = useAnimation();
+
+  useEffect(() => {
+    controls.start({ opacity, y: 0 });
+  }, [opacity, controls]);
 
   return (
     <MotionBox
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={controls}
+      transition={{ duration: 0.2, delay: index * 0.03 }} // Faster animation and shorter delay
       whileHover={{ scale: 1.05, boxShadow: "0px 0px 8px rgba(255,255,255,0.2)" }}
       bg="rgba(60, 60, 60, 0.6)"
       p={4}
       borderRadius="md"
       w="100%"
     >
-      <Box display="flex" justifyContent="space-between" alignItems="center">
+      <Flex justifyContent="space-between" alignItems="center">
         <Text>0x1234...5678</Text>
-        <Box display="flex" alignItems="center">
+        <Flex alignItems="center">
           {isCryptoToFiat ? (
             <>
               <FaEthereum color="#00FFFF" />
-              <Text ml={2}>ETH ⇒ USD</Text>
+              <Text ml={2}>ETH ⇔ USD</Text>
+              <FaDollarSign color="#00FF00" ml={2} />
             </>
           ) : (
             <>
               <FaDollarSign color="#00FF00" />
-              <Text ml={2}>USD ⇒ ETH</Text>
+              <Text ml={2}>USD ⇔ ETH</Text>
+              <FaEthereum color="#00FFFF" ml={2} />
             </>
           )}
-        </Box>
+        </Flex>
         <Text>{time}</Text>
-      </Box>
+      </Flex>
     </MotionBox>
   );
 };
 
 const HomePage: React.FC = () => {
+  const [orders, setOrders] = useState(Array(20).fill(0));
+  const ordersRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ordersRef.current) {
+        const { top, bottom } = ordersRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+
+        setOrders(prevOrders => 
+          prevOrders.map((_, index) => {
+            const elementTop = top + index * 76; // Approximate height of each order
+            const elementBottom = elementTop + 76;
+
+            if (elementTop > viewportHeight || elementBottom < 0) {
+              return 0; // Fully faded out
+            } else {
+              const visibilityPercentage = Math.min(1, (viewportHeight - elementTop) / 76);
+              return Math.max(0, visibilityPercentage); // Smoother fade-in
+            }
+          })
+        );
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial call to set initial visibility
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <>
       <Head>
@@ -60,7 +97,7 @@ const HomePage: React.FC = () => {
       </Head>
       <Box position="relative" minHeight="100vh" overflow="hidden">
         <Box
-          position="absolute"
+          position="fixed"
           top={0}
           left={0}
           right={0}
@@ -70,7 +107,7 @@ const HomePage: React.FC = () => {
           zIndex={-2}
         />
         <Box
-          position="absolute"
+          position="fixed"
           top={0}
           left={0}
           right={0}
@@ -79,9 +116,9 @@ const HomePage: React.FC = () => {
           opacity={0.05}
           zIndex={-1}
         />
+        <Header />
         <Container maxW="container.xl" centerContent py={8}>
           <VStack spacing={12} align="center" w="100%">
-            <Header />
             <Image src="/logo.png" alt="Swap321 Logo" width={200} height={200} />
             <VStack spacing={6} textAlign="center">
               <Heading as="h1" size="2xl" color="white">
@@ -99,14 +136,14 @@ const HomePage: React.FC = () => {
                 Total trading volume across all markets
               </Text>
             </Box>
-            <VStack spacing={4} w="100%" maxW="2xl">
-              <Text fontSize="xl" fontWeight="bold" color="gray.300">Live Orders</Text>
-              {[...Array(5)].map((_, index) => (
-                <LiveOrder key={index} index={index} />
-              ))}
-            </VStack>
           </VStack>
         </Container>
+        <VStack ref={ordersRef} spacing={4} w="100%" maxW="2xl" mx="auto" pb="100px">
+          <Text fontSize="xl" fontWeight="bold" color="gray.300">Live Orders</Text>
+          {orders.map((opacity, index) => (
+            <LiveOrder key={index} index={index} opacity={opacity} />
+          ))}
+        </VStack>
         <Footer />
       </Box>
     </>
