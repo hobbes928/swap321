@@ -7,6 +7,84 @@
  * or disable the default devtool with "devtool: false".
  * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
  */
+
+const express = require('express');
+const stripe = require('stripe')('your-secret-key');
+const bodyParser = require('body-parser');
+
+const app = express();
+app.use(bodyParser.json());
+
+// Create an account link
+app.post('/create-account-link', async (req, res) => {
+  const account = await stripe.accounts.create({ type: 'express' });
+  const accountLink = await stripe.accountLinks.create({
+    account: account.id,
+    refresh_url: 'https://example.com/reauth',
+    return_url: 'https://example.com/return',
+    type: 'account_onboarding',
+  });
+  res.send({ url: accountLink.url });
+});
+
+// Create a payment intent
+app.post('/create-payment-intent', async (req, res) => {
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: 2000,
+    currency: 'usd',
+    payment_method_types: ['card'],
+    transfer_group: '{ORDER_ID}', // Use a unique identifier for the order
+  });
+  res.send({ clientSecret: paymentIntent.client_secret });
+});
+
+// Capture the payment and transfer funds
+app.post('/capture-payment', async (req, res) => {
+  const { paymentIntentId, connectedAccountId } = req.body;
+
+  // Capture the payment
+  const paymentIntent = await stripe.paymentIntents.capture(paymentIntentId);
+
+  // Transfer funds to the connected account
+  const transfer = await stripe.transfers.create({
+    amount: paymentIntent.amount,
+    currency: paymentIntent.currency,
+    destination: connectedAccountId,
+    transfer_group: paymentIntent.transfer_group,
+  });
+
+  res.send({ success: true, transfer });
+});
+
+// Webhook endpoint
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, 'your-webhook-secret');
+  } catch (err) {
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntent = event.data.object;
+      console.log('PaymentIntent was successful!');
+      break;
+    // ... handle other event types
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  res.json({ received: true });
+});
+
+
+
+
+
 (() => {
 var exports = {};
 exports.id = "pages/_app";
