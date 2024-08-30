@@ -22,12 +22,21 @@ const Header: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
   const handleSignIn = (userData) => {
     setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const handleSignOut = () => {
     setUser(null);
+    localStorage.removeItem('user');
   };
 
   return (
@@ -51,12 +60,39 @@ const Header: React.FC = () => {
             <Button variant="outline">Contacts</Button>
             {user ? (
               <Menu>
-                <MenuButton as={Button} rounded={'full'} variant={'link'} cursor={'pointer'} minW={0}>
-                  <Avatar size={'sm'} src={user.avatar} />
+                <MenuButton
+                  as={Button}
+                  rounded={'full'}
+                  variant={'link'}
+                  cursor={'pointer'}
+                  minW={0}
+                >
+                  <Avatar size={'sm'} src={user.profileImage} />
                 </MenuButton>
-                <MenuList>
-                  <MenuItem onClick={() => router.push('/profile')}>Profile</MenuItem>
-                  <MenuItem onClick={handleSignOut}>Sign Out</MenuItem>
+                <MenuList
+                  bg="rgba(0, 0, 0, 0.8)"
+                  borderColor="brand.purple"
+                  borderWidth={1}
+                  boxShadow="0 0 10px rgba(128, 0, 128, 0.5)"
+                >
+                  <MenuItem
+                    onClick={() => router.push('/profile')}
+                    _hover={{ bg: 'rgba(128, 0, 128, 0.2)' }}
+                    _focus={{ bg: 'rgba(128, 0, 128, 0.2)' }}
+                    bg="transparent"
+                    color="white"
+                  >
+                    Profile
+                  </MenuItem>
+                  <MenuItem
+                    onClick={handleSignOut}
+                    _hover={{ bg: 'rgba(128, 0, 128, 0.2)' }}
+                    _focus={{ bg: 'rgba(128, 0, 128, 0.2)' }}
+                    bg="transparent"
+                    color="white"
+                  >
+                    Sign Out
+                  </MenuItem>
                 </MenuList>
               </Menu>
             ) : (
