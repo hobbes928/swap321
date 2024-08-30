@@ -1,4 +1,16 @@
 {
+  "../node_modules/@web3auth/ethereum-provider/dist/ethereumProvider.esm.js -> @ethereumjs/common": {
+    "id": "../node_modules/@web3auth/ethereum-provider/dist/ethereumProvider.esm.js -> @ethereumjs/common",
+    "files": [
+      "static/chunks/node_modules_ethereumjs_common_dist_esm_index_js.js"
+    ]
+  },
+  "../node_modules/@web3auth/ethereum-provider/dist/ethereumProvider.esm.js -> @ethereumjs/tx": {
+    "id": "../node_modules/@web3auth/ethereum-provider/dist/ethereumProvider.esm.js -> @ethereumjs/tx",
+    "files": [
+      "static/chunks/node_modules_ethereumjs_tx_dist_esm_index_js.js"
+    ]
+  },
   "../node_modules/@web3auth/ui/dist/index.js -> ./dutch-DA4bfNTp.js": {
     "id": "../node_modules/@web3auth/ui/dist/index.js -> ./dutch-DA4bfNTp.js",
     "files": [

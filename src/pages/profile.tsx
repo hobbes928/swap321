@@ -1,24 +1,46 @@
-// src/pages/profile.tsx
-import React from 'react';
-import { Box, VStack, Container, Text, Heading, Button, HStack, useToast, Grid, GridItem, Avatar, Icon } from '@chakra-ui/react';
+import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  VStack,
+  Container,
+  Text,
+  Heading,
+  Button,
+  HStack,
+  useToast,
+  Grid,
+  GridItem,
+  Avatar,
+  Icon,
+  Flex,
+  Tooltip,
+  useClipboard,
+} from '@chakra-ui/react';
 import Head from 'next/head';
 import Header from '../components/Layout/Header';
-import { FaGoogle, FaWallet, FaExchangeAlt, FaFileSignature, FaCreditCard } from 'react-icons/fa';
+import { FaGoogle, FaWallet, FaExchangeAlt, FaFileSignature, FaCreditCard, FaCopy } from 'react-icons/fa';
 import { MdNat } from 'react-icons/md';
+
+interface User {
+  name: string;
+  email: string;
+  profileImage: string;
+  walletAddress: string;
+}
 
 const ProfilePage: React.FC = () => {
   const toast = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const { hasCopied, onCopy } = useClipboard(user?.walletAddress || '');
 
-  // This would be fetched from your authentication state
-  const user = {
-    name: 'james llc',
-    email: 'jamesmurraylic@gmail.com',
-    walletAddress: '0x5d13c346...798bbb',
-    profileImage: 'https://via.placeholder.com/150',
-  };
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   const handleSave = () => {
-    // Here you would update the user's profile
     toast({
       title: "Profile updated",
       status: "success",
@@ -26,6 +48,27 @@ const ProfilePage: React.FC = () => {
       isClosable: true,
     });
   };
+
+  const handleCopyWalletAddress = () => {
+    onCopy();
+    toast({
+      title: "Wallet address copied",
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+  };
+
+  if (!user) {
+    return (
+      <Box minHeight="100vh" bg="black" color="white">
+        <Header />
+        <Container maxW="container.xl" pt="100px">
+          <Text>Please sign in to view your profile.</Text>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -45,7 +88,19 @@ const ProfilePage: React.FC = () => {
                   View User Info
                 </Button>
                 <Text fontWeight="bold">Wallet Address</Text>
-                <Text color="brand.cyan">{user.walletAddress}</Text>
+                <Flex alignItems="center">
+                  <Text color="brand.cyan" fontSize="sm" isTruncated>{user.walletAddress}</Text>
+                  <Tooltip label={hasCopied ? "Copied!" : "Copy address"} placement="top">
+                    <Button
+                      size="sm"
+                      ml={2}
+                      onClick={handleCopyWalletAddress}
+                      aria-label="Copy wallet address"
+                    >
+                      <FaCopy />
+                    </Button>
+                  </Tooltip>
+                </Flex>
                 <Button colorScheme="purple" size="sm">Register a Passkey</Button>
               </VStack>
             </GridItem>
@@ -63,7 +118,7 @@ const ProfilePage: React.FC = () => {
                 </Box>
                 <Box bg="gray.800" p={6} borderRadius="md">
                   <Heading size="md" mb={4}>NFT Services</Heading>
-                  <Text mb={4}>Let your users to claim or buy NFT in seconds</Text>
+                  <Text mb={4}>Let your users claim or buy NFTs in seconds</Text>
                   <Box 
                     borderWidth={2} 
                     borderColor="purple.500" 
@@ -82,7 +137,7 @@ const ProfilePage: React.FC = () => {
                 </Box>
                 <Box bg="gray.800" p={6} borderRadius="md">
                   <Heading size="md" mb={4}>Experience Web3Auth, first hand</Heading>
-                  <Text mb={4}>Browse our full suite of features for your dApp with our docs. Access codes examples for these features by visiting our playground.</Text>
+                  <Text mb={4}>Browse our full suite of features for your dApp with our docs. Access code examples for these features by visiting our playground.</Text>
                   <VStack spacing={4} align="stretch">
                     <Button colorScheme="blue">Read our docs</Button>
                     <Button colorScheme="green">Checkout Live Integrations</Button>
