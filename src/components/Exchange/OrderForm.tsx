@@ -39,7 +39,22 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
   const [durationSeconds, setDurationSeconds] = useState(0);
 
   const handleOrderTypeChange = () => {
-    setOrderType(prev => prev === 'ETH_TO_USD' ? 'USD_TO_ETH' : 'ETH_TO_USD');
+    setOrderType((prev) =>
+      prev === "ETH_TO_USD" ? "USD_TO_ETH" : "ETH_TO_USD"
+    );
+  };
+
+  const handleCreatingOrder = async () => {
+    await fetch("/api/Orders", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "user 1",
+        amount: "1.5",
+        type: "ETH"
+      }),
+    });
+
+    onClose();
   };
 
   return (
@@ -169,7 +184,7 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
           <Button
             colorScheme="purple"
             mr={3}
-            onClick={onClose}
+            onClick={handleCreatingOrder}
             as={motion.button}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
