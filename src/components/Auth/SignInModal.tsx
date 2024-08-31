@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -12,14 +12,18 @@ import {
   Box,
   Input,
   Flex,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react';
-import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from "@web3auth/base";
+import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK, WALLET_ADAPTERS } from "@web3auth/base";
 import { Web3Auth } from "@web3auth/modal";
 import { OpenloginAdapter } from "@web3auth/openlogin-adapter";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaGoogle, FaDiscord, FaTwitter } from 'react-icons/fa';
-import RPC from "./ethersRPC"; // Import the RPC methods
+import RPC from "./ethersRPC";
 
 const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
@@ -32,33 +36,30 @@ interface SignInModalProps {
 
 const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) => {
   const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
+  const [provider, setProvider] = useState<any>(null);
   const [isWeb3AuthInitialized, setWeb3AuthInitialized] = useState(false);
   const [email, setEmail] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
-  useEffect(() => {
-    const initWeb3Auth = async () => {
+  const initWeb3Auth = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
       const clientId = process.env.NEXT_PUBLIC_CLIENT_ID;
       const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
 
       if (!clientId || !rpcUrl) {
-        console.error("Missing environment variables");
-        toast({
-          title: "Configuration Error",
-          description: "Missing environment variables",
-          status: "error",
-          duration: null,
-          isClosable: true,
-        });
-        return;
+        throw new Error("Missing environment variables");
       }
 
       const chainConfig = {
         chainNamespace: CHAIN_NAMESPACES.EIP155,
-        chainId: "0xaa36a7",
+        chainId: "0xaa36a7", // Sepolia testnet
         rpcTarget: rpcUrl,
         displayName: "Ethereum Sepolia Testnet",
-        blockExplorerUrl: "https://sepolia.etherscan.io",
+        blockExplorer: "https://sepolia.etherscan.io",
         ticker: "ETH",
         tickerName: "Ethereum",
       };
@@ -67,87 +68,105 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
         config: { chainConfig }
       });
 
-      try {
-        const web3auth = new Web3Auth({
-          clientId: clientId,
-          web3AuthNetwork: WEB3AUTH_NETWORK.TESTNET,
-          chainConfig,
-          privateKeyProvider
-        });
+      const web3auth = new Web3Auth({
+        clientId: clientId,
+        web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET, // Change this line
+        chainConfig,
+        privateKeyProvider,
+      });
 
-        const openloginAdapter = new OpenloginAdapter({
-          adapterSettings: {
-            clientId: clientId,
-            network: "testnet",
-            uxMode: "popup",
-          },
-        });
+      const openloginAdapter = new OpenloginAdapter({
+        adapterSettings: {
+          network: "sapphire_devnet", // Change this line
+          uxMode: "popup",
+        },
+      });
 
-        web3auth.configureAdapter(openloginAdapter);
+      web3auth.configureAdapter(openloginAdapter);
+      setWeb3auth(web3auth);
 
-        await web3auth.initModal();
-        setWeb3auth(web3auth);
-        setWeb3AuthInitialized(true);
-      } catch (error) {
-        console.error("Web3Auth initialization failed:", error);
-        toast({
-          title: "Initialization failed",
-          description: "Web3Auth could not be initialized. Check console for details.",
-          status: "error",
-          duration: null,
-          isClosable: true,
-        });
+      await web3auth.initModal();
+      setWeb3AuthInitialized(true);
+      
+      if (web3auth.provider) {
+        setProvider(web3auth.provider);
       }
-    };
-
-    if (!isWeb3AuthInitialized) {
-      initWeb3Auth();
+    } catch (error) {
+      console.error("Error initializing Web3Auth", error);
+      setError(`Failed to initialize Web3Auth: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
     }
-  }, [isWeb3AuthInitialized, toast]);
+  }, []);
+
+  useEffect(() => {
+    initWeb3Auth();
+  }, [initWeb3Auth]);
 
   const login = async (loginMethod: string) => {
-    if (!web3auth || !isWeb3AuthInitialized) {
-      toast({ title: "Web3Auth not initialized", status: "error" });
+    if (!web3auth) {
+      setError("Web3Auth not initialized");
       return;
     }
+    setIsLoading(true);
+    setError(null);
     try {
-      if (web3auth.connected) {
-        await web3auth.logout();
-      }
       let web3authProvider;
       switch (loginMethod) {
         case 'email':
-          web3authProvider = await web3auth.connectTo("openlogin", { loginProvider: "email_passwordless", extraLoginOptions: { login_hint: email } });
+          web3authProvider = await web3auth.connectTo(WALLET_ADAPTERS.OPENLOGIN, {
+            loginProvider: "email_passwordless",
+            extraLoginOptions: {
+              login_hint: email,
+            },
+          });
           break;
         case 'google':
-          web3authProvider = await web3auth.connectTo("openlogin", { loginProvider: "google" });
+          web3authProvider = await web3auth.connectTo(WALLET_ADAPTERS.OPENLOGIN, {
+            loginProvider: "google",
+          });
           break;
         case 'discord':
-          web3authProvider = await web3auth.connectTo("openlogin", { loginProvider: "discord" });
+          web3authProvider = await web3auth.connectTo(WALLET_ADAPTERS.OPENLOGIN, {
+            loginProvider: "discord",
+          });
           break;
         case 'twitter':
-          web3authProvider = await web3auth.connectTo("openlogin", { loginProvider: "twitter" });
+          web3authProvider = await web3auth.connectTo(WALLET_ADAPTERS.OPENLOGIN, {
+            loginProvider: "twitter",
+          });
           break;
         default:
           throw new Error("Invalid login method");
       }
-      const user = await web3auth.getUserInfo();
       
-      // Fetch the wallet address
-      const address = await RPC.getAccounts(web3authProvider);
+      if (!web3authProvider) {
+        throw new Error("Failed to get provider");
+      }
+
+      setProvider(web3authProvider);
       
-      // Combine user info with wallet address
+      const userInfo = await web3auth.getUserInfo();
+      const rpc = new RPC(web3authProvider);
+      const address = await rpc.getAccounts();
+      
       const userWithWallet = {
-        ...user,
-        walletAddress: address
+        ...userInfo,
+        walletAddress: address[0],
       };
       
       onSignIn(userWithWallet);
       onClose();
     } catch (error) {
       console.error("Login failed:", error);
-      toast({ title: "Login failed", description: `Could not log in with ${loginMethod}. ${(error as Error).message}`, status: "error" });
+      setError(`Login failed: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    initWeb3Auth();
   };
 
   return (
@@ -181,55 +200,74 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
                   <Text color="white" fontSize="2xl" fontWeight="bold" textAlign="center">
                     Connect Your Wallet
                   </Text>
-                  <MotionBox
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <Input
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      bg="rgba(255, 255, 255, 0.1)"
-                      border="none"
-                      color="white"
-                      _placeholder={{ color: "gray.400" }}
-                    />
-                    <Button
-                      mt={2}
-                      w="100%"
-                      bg="brand.neonPink"
-                      color="white"
-                      _hover={{ bg: "brand.neonPink", opacity: 0.8 }}
-                      onClick={() => login('email')}
-                    >
-                      Connect with Email
+                  {error && (
+                    <Alert status="error">
+                      <AlertIcon />
+                      <AlertTitle mr={2}>Error</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  {isLoading ? (
+                    <Text color="white" textAlign="center">Loading...</Text>
+                  ) : error ? (
+                    <Button onClick={handleRetry} colorScheme="blue">
+                      Retry
                     </Button>
-                  </MotionBox>
-                  <Text color="gray.400" textAlign="center">Or connect with</Text>
-                  <MotionFlex justify="center" spacing={4}>
-                    {[
-                      { icon: FaGoogle, method: 'google', color: '#DB4437' },
-                      { icon: FaDiscord, method: 'discord', color: '#7289DA' },
-                      { icon: FaTwitter, method: 'twitter', color: '#1DA1F2' },
-                    ].map((item, index) => (
+                  ) : (
+                    <>
                       <MotionBox
-                        key={item.method}
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.4 + index * 0.1 }}
+                        transition={{ delay: 0.3 }}
                       >
-                        <Button
-                          bg={item.color}
+                        <Input
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          bg="rgba(255, 255, 255, 0.1)"
+                          border="none"
                           color="white"
-                          _hover={{ opacity: 0.8 }}
-                          onClick={() => login(item.method)}
+                          _placeholder={{ color: "gray.400" }}
+                        />
+                        <Button
+                          mt={2}
+                          w="100%"
+                          bg="brand.neonPink"
+                          color="white"
+                          _hover={{ bg: "brand.neonPink", opacity: 0.8 }}
+                          onClick={() => login('email')}
+                          isDisabled={isLoading}
                         >
-                          <item.icon />
+                          Connect with Email
                         </Button>
                       </MotionBox>
-                    ))}
-                  </MotionFlex>
+                      <Text color="gray.400" textAlign="center">Or connect with</Text>
+                      <MotionFlex justify="center" spacing={4}>
+                        {[
+                          { icon: FaGoogle, method: 'google', color: '#DB4437' },
+                          { icon: FaDiscord, method: 'discord', color: '#7289DA' },
+                          { icon: FaTwitter, method: 'twitter', color: '#1DA1F2' },
+                        ].map((item, index) => (
+                          <MotionBox
+                            key={item.method}
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 + index * 0.1 }}
+                          >
+                            <Button
+                              bg={item.color}
+                              color="white"
+                              _hover={{ opacity: 0.8 }}
+                              onClick={() => login(item.method)}
+                              isDisabled={isLoading}
+                            >
+                              <item.icon />
+                            </Button>
+                          </MotionBox>
+                        ))}
+                      </MotionFlex>
+                    </>
+                  )}
                 </VStack>
               </ModalBody>
             </MotionBox>
