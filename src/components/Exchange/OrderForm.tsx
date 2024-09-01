@@ -70,12 +70,14 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          seller_email: general.email, 
-          buyer_email: "",   
+          seller_email: general.email,
+          seller_address: general.walletAddress,
+          buyer_email: "",
+          buyer_address: "",
           amount: amount,
-          currency: orderType, 
-          blockchain_tx: "0x123456...", 
-          PG_tx: "PAYPAL12345", 
+          currency: orderType,
+          blockchain_tx: "0x123456...",
+          PG_tx: "PAYPAL12345",
         }),
       });
   
