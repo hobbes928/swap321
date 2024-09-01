@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -20,6 +20,7 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
+  useToast,
 } from '@chakra-ui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaEthereum, FaDollarSign } from 'react-icons/fa';
@@ -37,6 +38,9 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
   const [durationHours, setDurationHours] = useState(0);
   const [durationMinutes, setDurationMinutes] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
+  const [user, setUser] = useState<any>(undefined);
+
+  const toast = useToast(); 
 
   const handleOrderTypeChange = () => {
     setOrderType((prev) =>
@@ -45,18 +49,65 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleCreatingOrder = async () => {
-    await fetch("/api/Orders", {
-      method: "POST",
-      body: JSON.stringify({
-        name: "user 1",
-        amount: "1.5",
-        type: "ETH"
-      }),
-    });
+    try {
+      const response = await fetch("/api/Orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          seller_email: "seller@example.com", 
+          buyer_email: "buyer@example.com",   
+          amount: amount,
+          currency: orderType, 
+          blockchain_tx: "0x123456...", 
+          PG_tx: "PAYPAL12345", 
+        }),
+      });
+  
+      if (response.ok) {
+        console.log("Order created successfully!");
+        toast({
+          title: "Order Created",
+          description: "Your order has been successfully created.",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
 
-    onClose();
-  };
+        onClose();
+      } else {
+        console.error("Failed to create order");
+        toast({
+          title: "Order Creation Failed",
+          description: "There was an issue creating your order. Please try again.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+      
+    } catch (error) {
+      console.error("Error creating order:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again later.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  
+  };  
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+      console.log("storedUser:",JSON.parse(storedUser));
+      
+    }
+  }, []);
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay backdropFilter="blur(10px)" />
@@ -72,7 +123,7 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
           <VStack spacing={6}>
             <Box w="100%">
               <Text mb={2}>Connected Wallet</Text>
-              <Input value="0x1234...5678" isReadOnly bg="rgba(60, 60, 60, 0.6)" />
+              <Input value={user && user.walletAddress} isReadOnly bg="rgba(60, 60, 60, 0.6)" />
             </Box>
             <Box w="100%">
               <Text mb={2}>Order Type</Text>

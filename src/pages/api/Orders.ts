@@ -6,7 +6,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const orderData = JSON.parse(req.body);
+  const orderData = req.body;
 
   if (req.method === "POST") {
     try {
