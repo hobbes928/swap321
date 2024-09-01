@@ -43,10 +43,6 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
   const [isCreatingOrder , setIsCreatingOrder] = useState(false)
   const toast = useToast(); 
 
-  const handleGeneral = useGeneralStore(
-    (state: GeneralProps) => state.handleGeneral
-  );
-
   const general = useGeneralStore(
     (state: GeneralProps) => state.general
   );
@@ -117,18 +113,15 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
     } finally {
       setIsCreatingOrder(false)
     }
-  
-  };  
+  }; 
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
-      console.log("storedUser:",JSON.parse(storedUser));
-      
     }
-    console.log("general:",general);
   }, [general]);
+  
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay backdropFilter="blur(10px)" />
