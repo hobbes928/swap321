@@ -24,6 +24,7 @@ import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaGoogle, FaDiscord, FaTwitter } from 'react-icons/fa';
 import RPC from "./ethersRPC";
+import { GeneralProps, useGeneralStore } from '@/hooks/useGeneral';
 
 const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
@@ -42,6 +43,10 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
+
+  const handleWeb3Auth = useGeneralStore(
+    (state: GeneralProps) => state.handleWeb3Auth
+  );
 
   const initWeb3Auth = useCallback(async () => {
     setIsLoading(true);
@@ -151,6 +156,7 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
 
       setProvider(web3authProvider);
       
+      handleWeb3Auth(web3authProvider)
       const userInfo = await web3auth.getUserInfo();
       const rpc = new RPC(web3authProvider);
       const address = await rpc.getAccounts();

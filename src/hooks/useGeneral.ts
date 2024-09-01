@@ -6,6 +6,11 @@ export interface GeneralProps {
     email: String;
   };
   handleGeneral: (data: any) => void;
+
+  web3Auth: {
+    provider: any;
+  };
+  handleWeb3Auth: (data: any) => void;
 }
 
 export const useGeneralStore = create<GeneralProps>((set) => ({
@@ -14,4 +19,8 @@ export const useGeneralStore = create<GeneralProps>((set) => ({
     email: "",
   },
   handleGeneral: (data: any) => set({ general: data }),
+  web3Auth: {
+    provider: undefined,
+  },
+  handleWeb3Auth: (data: any) => set({ web3Auth: data }),
 }));
