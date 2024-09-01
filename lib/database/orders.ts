@@ -13,9 +13,17 @@ const OrdersSchema = new Schema({
     type: String,
     required: true, // Seller's email is mandatory
   },
+  seller_address: {
+    type: String,
+    required: true, // Seller's email is mandatory
+  },
   buyer_email: {
     type: String,
-    required: true, // Buyer's email is mandatory
+    required: false, // Buyer's email is mandatory
+  },
+  buyer_address: {
+    type: String,
+    required: false, // Buyer's email is mandatory
   },
   blockchain_tx: {
     type: String,
