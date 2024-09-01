@@ -15,7 +15,7 @@ const OrdersSchema = new Schema({
   },
   buyer_email: {
     type: String,
-    required: true, // Buyer's email is mandatory
+    required: false, // Buyer's email is mandatory
   },
   blockchain_tx: {
     type: String,
