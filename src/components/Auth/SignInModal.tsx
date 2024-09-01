@@ -22,7 +22,8 @@ import { Web3Auth } from "@web3auth/modal";
 import { OpenloginAdapter } from "@web3auth/openlogin-adapter";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaGoogle, FaDiscord, FaTwitter } from 'react-icons/fa';
+import { FaGoogle, FaApple, FaDollarSign, FaEthereum } from 'react-icons/fa';
+import { SiEthereum } from 'react-icons/si';
 import RPC from "./ethersRPC";
 import { GeneralProps, useGeneralStore } from '@/hooks/useGeneral';
 
@@ -42,6 +43,8 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [showDollar, setShowDollar] = useState(true);
   const toast = useToast();
 
   const handleWeb3Auth = useGeneralStore(
@@ -109,6 +112,13 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
       initWeb3Auth();
     }
   }, [isOpen, initWeb3Auth]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowDollar((prev) => !prev);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const login = async (loginMethod: string) => {
     if (!web3auth) {
@@ -183,8 +193,11 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
         },
       }));
       
-      onSignIn(userWithWallet);
-      onClose();
+      setIsConnected(true); // Set connected state to true
+      setTimeout(() => {
+        onSignIn(userWithWallet);
+        onClose();
+      }, 2000); // Delay closing the modal to show the check mark
     } catch (error) {
       console.error("Login failed:", error);
       setError(`Login failed: ${(error as Error).message}`);
@@ -225,9 +238,18 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
                   >
                     <Image src="/logo.png" alt="Logo" boxSize="80px" />
                   </MotionFlex>
-                  <Text color="white" fontSize="2xl" fontWeight="bold" textAlign="center">
-                    Connect Your Wallet
-                  </Text>
+                  <MotionBox
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                  >
+                    <Text color="white" fontSize="2xl" fontWeight="bold" textAlign="center">
+                      Connect to Web3
+                    </Text>
+                    <Text color="white" fontSize="lg" textAlign="center">
+                      Web2 Style 🤘
+                    </Text>
+                  </MotionBox>
                   {error && (
                     <Alert status="error">
                       <AlertIcon />
@@ -237,6 +259,30 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
                   )}
                   {isLoading ? (
                     <Text color="white" textAlign="center">Loading...</Text>
+                  ) : isConnected ? (
+                    <MotionBox
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                      display="flex"
+                      justifyContent="center"
+                      alignItems="center"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="feather feather-check-circle"
+                        style={{ color: 'green', width: '50px', height: '50px' }}
+                      >
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                      </svg>
+                    </MotionBox>
                   ) : error ? (
                     <Button onClick={handleRetry} colorScheme="blue">
                       Retry
@@ -248,6 +294,30 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.3 }}
                       >
+                        <Button
+                          w="100%"
+                          bg="white"
+                          color="black"
+                          _hover={{ bg: "gray.200" }}
+                          onClick={() => login('google')}
+                          isDisabled={isLoading}
+                          leftIcon={<FaGoogle />}
+                        >
+                          Sign in with Google
+                        </Button>
+                        <Button
+                          mt={2}
+                          w="100%"
+                          bg="white"
+                          color="black"
+                          _hover={{ bg: "gray.200" }}
+                          onClick={() => login('apple')}
+                          isDisabled={isLoading}
+                          leftIcon={<FaApple />}
+                        >
+                          Sign in with Apple
+                        </Button>
+                        <Text color="gray.400" textAlign="center" mt={2}>Or</Text>
                         <Input
                           placeholder="Enter your email"
                           value={email}
@@ -266,34 +336,44 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
                           onClick={() => login('email')}
                           isDisabled={isLoading}
                         >
-                          Connect with Email
+                          Sign in with Email
                         </Button>
                       </MotionBox>
-                      <Text color="gray.400" textAlign="center">Or connect with</Text>
-                      <MotionFlex justify="center" spacing={4}>
-                        {[
-                          { icon: FaGoogle, method: 'google', color: '#DB4437' },
-                          { icon: FaDiscord, method: 'discord', color: '#7289DA' },
-                          { icon: FaTwitter, method: 'twitter', color: '#1DA1F2' },
-                        ].map((item, index) => (
+                      <MotionBox
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        display="flex"
+                        justifyContent="center"
+                        alignItems="center"
+                        mt={4}
+                      >
+                        <AnimatePresence mode="wait">
                           <MotionBox
-                            key={item.method}
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.4 + index * 0.1 }}
+                            key={showDollar ? 'dollar' : 'eth'}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.2 }}
                           >
-                            <Button
-                              bg={item.color}
-                              color="white"
-                              _hover={{ opacity: 0.8 }}
-                              onClick={() => login(item.method)}
-                              isDisabled={isLoading}
-                            >
-                              <item.icon />
-                            </Button>
+                            <Flex alignItems="center">
+                              {showDollar ? (
+                                <>
+                                  <FaDollarSign color="#00FF00" />
+                                  <Text ml={2}>USD ⇔ ETH</Text>
+                                  <FaEthereum color="#00FFFF" ml={2} />
+                                </>
+                              ) : (
+                                <>
+                                  <FaEthereum color="#00FFFF" />
+                                  <Text ml={2}>ETH ⇔ USD</Text>
+                                  <FaDollarSign color="#00FF00" ml={2} />
+                                </>
+                              )}
+                            </Flex>
                           </MotionBox>
-                        ))}
-                      </MotionFlex>
+                        </AnimatePresence>
+                      </MotionBox>
                     </>
                   )}
                 </VStack>
