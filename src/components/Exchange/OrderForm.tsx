@@ -24,6 +24,7 @@ import {
 } from '@chakra-ui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaEthereum, FaDollarSign } from 'react-icons/fa';
+import { GeneralProps, useGeneralStore } from '@/hooks/useGeneral';
 
 const MotionBox = motion(Box);
 
@@ -39,9 +40,16 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
   const [durationMinutes, setDurationMinutes] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [user, setUser] = useState<any>(undefined);
-
+  const [isCreatingOrder , setIsCreatingOrder] = useState(false)
   const toast = useToast(); 
 
+  const handleGeneral = useGeneralStore(
+    (state: GeneralProps) => state.handleGeneral
+  );
+
+  const general = useGeneralStore(
+    (state: GeneralProps) => state.general
+  );
   const handleOrderTypeChange = () => {
     setOrderType((prev) =>
       prev === "ETH_TO_USD" ? "USD_TO_ETH" : "ETH_TO_USD"
@@ -49,15 +57,25 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleCreatingOrder = async () => {
+    if(!amount || amount == "0" || amount == ""){
+      return toast({
+        title: "Amount",
+        description: "Please enter the amount.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
     try {
+      setIsCreatingOrder(true)
       const response = await fetch("/api/Orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          seller_email: "seller@example.com", 
-          buyer_email: "buyer@example.com",   
+          seller_email: general.email, 
+          buyer_email: "",   
           amount: amount,
           currency: orderType, 
           blockchain_tx: "0x123456...", 
@@ -96,6 +114,8 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsCreatingOrder(false)
     }
   
   };  
@@ -107,7 +127,8 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
       console.log("storedUser:",JSON.parse(storedUser));
       
     }
-  }, []);
+    console.log("general:",general);
+  }, [general]);
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay backdropFilter="blur(10px)" />
@@ -176,7 +197,7 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
                 bg="rgba(60, 60, 60, 0.6)"
               />
             </Box>
-            <Box w="100%">
+           {false && <Box w="100%">
               <Text mb={2}>Order Duration</Text>
               <HStack>
                 <VStack>
@@ -229,6 +250,7 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
                 </VStack>
               </HStack>
             </Box>
+            }
           </VStack>
         </ModalBody>
         <ModalFooter>
@@ -239,6 +261,7 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({ isOpen, onClose }) => {
             as={motion.button}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            disabled={isCreatingOrder}
           >
             Open Order
           </Button>

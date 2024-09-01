@@ -108,6 +108,11 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
       setError("Web3Auth not initialized");
       return;
     }
+    
+    if (web3auth.connected) {
+      await web3auth.logout();
+    }
+    
     setIsLoading(true);
     setError(null);
     try {
