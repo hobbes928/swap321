@@ -189,7 +189,7 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     const fetchPaymentDetails = async () => {
       try {
-        const response = await fetch('/api/payment-details', {
+        const response = await fetch('/api/paymentDetails', {
           headers: {
             'x-user-email': user?.email || '',
           },
@@ -446,7 +446,7 @@ const ProfilePage: React.FC = () => {
 
   const savePaymentDetails = async () => {
     try {
-      const response = await fetch('/api/payment-details', {
+      const response = await fetch('/api/paymentDetails', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
