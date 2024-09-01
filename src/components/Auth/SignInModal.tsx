@@ -75,14 +75,14 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
 
       const web3auth = new Web3Auth({
         clientId: clientId,
-        web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET, // Change this line
+        web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
         chainConfig,
         privateKeyProvider,
       });
 
       const openloginAdapter = new OpenloginAdapter({
         adapterSettings: {
-          network: "sapphire_devnet", // Change this line
+          network: "sapphire_devnet",
           uxMode: "popup",
         },
       });
@@ -105,8 +105,10 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
   }, []);
 
   useEffect(() => {
-    initWeb3Auth();
-  }, [initWeb3Auth]);
+    if (isOpen) {
+      initWeb3Auth();
+    }
+  }, [isOpen, initWeb3Auth]);
 
   const login = async (loginMethod: string) => {
     if (!web3auth) {
@@ -165,6 +167,21 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
         ...userInfo,
         walletAddress: address[0],
       };
+      
+      // Store the Web3Auth configuration
+      localStorage.setItem('web3authProvider', JSON.stringify({
+        clientId: process.env.NEXT_PUBLIC_CLIENT_ID,
+        web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+        chainConfig: {
+          chainNamespace: CHAIN_NAMESPACES.EIP155,
+          chainId: "0xaa36a7", // Sepolia testnet
+          rpcTarget: process.env.NEXT_PUBLIC_RPC_URL,
+          displayName: "Ethereum Sepolia Testnet",
+          blockExplorer: "https://sepolia.etherscan.io",
+          ticker: "ETH",
+          tickerName: "Ethereum",
+        },
+      }));
       
       onSignIn(userWithWallet);
       onClose();
