@@ -59,7 +59,7 @@ export class RPC {
     }
   }
 
-  async sendTransaction(destination: string, amount: string): Promise<string> {
+  async sendTransaction(destination: string, amount: string): Promise<{ hash: string, transaction: any }> {
     try {
       const ethersProvider = this.getEthersProvider();
       const signer = await ethersProvider.getSigner();
@@ -67,10 +67,25 @@ export class RPC {
         to: destination,
         value: ethers.parseEther(amount),
       });
-      return transaction.hash;
+      return { hash: transaction.hash, transaction };
     } catch (error) {
       console.error("Error in sendTransaction:", error);
       throw new Error(`Failed to send transaction: ${(error as Error).message}`);
+    }
+  }
+
+  async estimateGas(destination: string, amount: string): Promise<string> {
+    try {
+      const ethersProvider = this.getEthersProvider();
+      const signer = await ethersProvider.getSigner();
+      const gasEstimate = await signer.estimateGas({
+        to: destination,
+        value: ethers.parseEther(amount),
+      });
+      return ethers.formatUnits(gasEstimate, "gwei");
+    } catch (error) {
+      console.error("Error in estimateGas:", error);
+      throw new Error(`Failed to estimate gas: ${(error as Error).message}`);
     }
   }
 
@@ -255,6 +270,51 @@ export class RPC {
       });
     } catch (error) {
       console.error("Error in getTransactionHistory:", error);
+      throw error;
+    }
+  }
+
+  async getLatestTransactions(lastKnownTxHash: string | null): Promise<any[]> {
+    try {
+      const ethersProvider = this.getEthersProvider();
+      const signer = await ethersProvider.getSigner();
+      const address = await signer.getAddress();
+      
+      const COVALENT_API_KEY = process.env.NEXT_PUBLIC_COVALENT_API_KEY;
+      if (!COVALENT_API_KEY) {
+        throw new Error("Covalent API key is not set");
+      }
+
+      const chainId = 11155111; // Sepolia testnet
+      const response = await axios.get(
+        `https://api.covalenthq.com/v1/${chainId}/address/${address}/transactions_v2/?page-size=10`,
+        {
+          headers: {
+            'Authorization': `Bearer ${COVALENT_API_KEY}`
+          }
+        }
+      );
+
+      const newTransactions = response.data.data.items
+        .filter((item: any) => item.tx_hash !== lastKnownTxHash)
+        .map((item: any, index: number) => {
+          const isNFT = item.transfers && item.transfers.some((transfer: any) => transfer.contract_ticker_symbol === 'NFT');
+          return {
+            id: `${item.tx_hash}-${item.block_height}-${index}`, // Create a unique id
+            hash: item.tx_hash,
+            from: item.from_address,
+            to: item.to_address,
+            value: ethers.formatEther(item.value),
+            timestamp: new Date(item.block_signed_at).toLocaleString(),
+            isIncoming: item.to_address.toLowerCase() === address.toLowerCase(),
+            isNFT: isNFT,
+            nftData: isNFT ? item.transfers.find((transfer: any) => transfer.contract_ticker_symbol === 'NFT') : null
+          };
+        });
+
+      return newTransactions;
+    } catch (error) {
+      console.error("Error in getLatestTransactions:", error);
       throw error;
     }
   }

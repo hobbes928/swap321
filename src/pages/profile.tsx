@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   VStack,
@@ -69,6 +69,40 @@ const ProfilePage: React.FC = () => {
   const [seedPhrase, setSeedPhrase] = useState('');
   const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
+  const [gasFee, setGasFee] = useState<string>('0');
+  const [totalAmount, setTotalAmount] = useState<string>('0');
+  const [isPolling, setIsPolling] = useState(false);
+
+  const pollTransactions = useCallback(async (rpc: RPC) => {
+    const pollInterval = 10000; // Poll every 10 seconds
+    const maxAttempts = 6; // Poll for 1 minute (6 * 10 seconds)
+    let attempts = 0;
+
+    const checkTransactions = async () => {
+      if (attempts >= maxAttempts) {
+        setIsPolling(false);
+        return;
+      }
+
+      try {
+        const newTransactions = await rpc.getTransactionHistory();
+        setTransactions(newTransactions);
+
+        const newBalance = await rpc.getBalance();
+        setBalance(newBalance);
+
+        attempts += 1;
+        setTimeout(checkTransactions, pollInterval);
+      } catch (error) {
+        console.error("Error polling transactions:", error);
+        setIsPolling(false);
+      }
+    };
+
+    setIsPolling(true);
+    checkTransactions();
+  }, []);
 
   useEffect(() => {
     const initWeb3Auth = async () => {
@@ -131,6 +165,9 @@ const ProfilePage: React.FC = () => {
           setAssets(fetchedAssets);
           setNfts(fetchedNFTs);
           setTransactions(fetchedTransactions);
+
+          // Start polling for transactions
+          pollTransactions(rpc);
         } else {
           throw new Error("Failed to initialize Web3Auth provider");
         }
@@ -141,7 +178,7 @@ const ProfilePage: React.FC = () => {
     };
 
     initWeb3Auth();
-  }, []);
+  }, [pollTransactions]);
 
   const handleCopyWalletAddress = () => {
     onCopy();
@@ -246,15 +283,59 @@ const ProfilePage: React.FC = () => {
         throw new Error("Web3Auth not initialized");
       }
       const rpc = new RPC(web3auth.provider as IProvider);
-      const txHash = await rpc.sendTransaction(recipientAddress, sendAmount);
+      const estimatedGasFee = await rpc.estimateGas(recipientAddress, sendAmount);
+      setGasFee(estimatedGasFee);
+      setTotalAmount((parseFloat(sendAmount) + parseFloat(estimatedGasFee)).toString());
+      onConfirmOpen();
+    } catch (error) {
+      toast({
+        title: "Error estimating gas fee",
+        description: (error as Error).message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const confirmSendCrypto = async () => {
+    try {
+      if (!web3auth || !web3auth.provider) {
+        throw new Error("Web3Auth not initialized");
+      }
+      const rpc = new RPC(web3auth.provider as IProvider);
+      const { hash, transaction } = await rpc.sendTransaction(recipientAddress, sendAmount);
+      
+      // Update the balance immediately
+      const newBalance = await rpc.getBalance();
+      setBalance(newBalance);
+
+      // Add the new transaction to the state immediately
+      setTransactions((prevTransactions) => [
+        {
+          hash,
+          from: transaction.from,
+          to: transaction.to,
+          value: sendAmount,
+          timestamp: new Date().toLocaleString(),
+          isIncoming: false,
+          isNFT: false,
+          nftData: null,
+        },
+        ...prevTransactions,
+      ]);
+
+      // Start polling for transactions after sending
+      pollTransactions(rpc);
+
       toast({
         title: "Transaction sent",
-        description: `Transaction hash: ${txHash}`,
+        description: `Transaction hash: ${hash}`,
         status: "success",
         duration: 5000,
         isClosable: true,
       });
-      await refreshTransactions();
+      onConfirmClose();
     } catch (error) {
       toast({
         title: "Error sending transaction",
@@ -314,8 +395,17 @@ const ProfilePage: React.FC = () => {
   const refreshTransactions = async () => {
     if (web3auth && web3auth.provider) {
       const rpc = new RPC(web3auth.provider as IProvider);
-      const fetchedTransactions = await rpc.getTransactionHistory();
-      setTransactions(fetchedTransactions);
+      setIsPolling(true);
+      try {
+        const fetchedTransactions = await rpc.getTransactionHistory();
+        setTransactions(fetchedTransactions);
+        const newBalance = await rpc.getBalance();
+        setBalance(newBalance);
+      } catch (error) {
+        console.error("Error refreshing transactions:", error);
+      } finally {
+        setIsPolling(false);
+      }
     }
   };
 
@@ -413,7 +503,9 @@ const ProfilePage: React.FC = () => {
                       </Box>
                       <Box>
                         <Heading size="md" mb={2}>Transaction History</Heading>
-                        <Button onClick={refreshTransactions} mb={4}>Refresh</Button>
+                        <Button onClick={refreshTransactions} isLoading={isPolling}>
+                          Refresh Transactions
+                        </Button>
                         {transactions.length > 0 ? (
                           <VStack spacing={4} align="stretch">
                             {transactions.map((tx, index) => (
@@ -587,6 +679,25 @@ const ProfilePage: React.FC = () => {
             <Button colorScheme="blue" mr={3} onClick={onClose}>
               Close
             </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal isOpen={isConfirmOpen} onClose={onConfirmClose}>
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white">
+          <ModalHeader>Confirm Transaction</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>Recipient Address: {recipientAddress}</Text>
+            <Text>Amount: {sendAmount} ETH</Text>
+            <Text>Gas Fee: {gasFee} ETH</Text>
+            <Text>Total Deduction: {totalAmount} ETH</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={confirmSendCrypto}>
+              Confirm
+            </Button>
+            <Button variant="ghost" onClick={onConfirmClose}>Cancel</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
