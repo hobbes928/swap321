@@ -37,6 +37,7 @@ const Header: React.FC = () => {
     }
     onOpenOrderOpen()
   }
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);

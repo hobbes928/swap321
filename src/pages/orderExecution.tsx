@@ -1,11 +1,11 @@
-// src/pages/order-execution.tsx
 import React, { useState, useEffect } from 'react';
-import { Box, Flex, VStack, Text, Button, Input, useToast, HStack, Divider, Container } from '@chakra-ui/react';
+import { Box, Flex, VStack, Text, Button, Input, useToast, HStack, Container } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { FaEthereum, FaDollarSign } from 'react-icons/fa';
 import Head from 'next/head';
 import Header from '../components/Layout/Header';
 import { useRouter } from 'next/router';
+import SellerOrderExecution from '../components/Exchange/SellerOrder';
+import BuyerOrderExecution from '../components/Exchange/BuyerOrder';
 
 const MotionBox = motion(Box);
 
@@ -29,8 +29,6 @@ const OrderExecutionPage: React.FC = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // In a real application, you would fetch the order details based on the order ID
-    // For this example, we'll use mock data
     const mockOrderDetails: OrderDetails = {
       type: router.query.type as 'ETH_TO_USD' | 'USD_TO_ETH' || 'ETH_TO_USD',
       amount: router.query.type === 'ETH_TO_USD' ? '1.5 ETH' : '2000 USD',
@@ -84,62 +82,11 @@ const OrderExecutionPage: React.FC = () => {
             </Box>
             <Flex>
               <Box flex={2} p={6} borderRight="1px solid" borderColor="gray.700">
-                <VStack align="stretch" spacing={8}>
-                  <Box>
-                    <HStack mb={2}>
-                      <Box bg="yellow.400" color="black" px={2} py={1} borderRadius="full">1</Box>
-                      <Text fontWeight="bold">Confirm Order info</Text>
-                    </HStack>
-                    <Box bg="gray.800" p={4} borderRadius="md">
-                      <HStack justify="space-between">
-                        <Text color="gray.400">{orderDetails.type === 'ETH_TO_USD' ? 'ETH Amount' : 'USD Amount'}</Text>
-                        <Text>{orderDetails.amount}</Text>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text color="gray.400">Price</Text>
-                        <Text>{orderDetails.price}</Text>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text color="gray.400">{orderDetails.type === 'ETH_TO_USD' ? 'Receive USD' : 'Receive ETH'}</Text>
-                        <Text>{orderDetails.receiveAmount}</Text>
-                      </HStack>
-                    </Box>
-                  </Box>
-                  <Box>
-                    <HStack mb={2}>
-                      <Box bg="yellow.400" color="black" px={2} py={1} borderRadius="full">2</Box>
-                      <Text fontWeight="bold">
-                        {orderDetails.type === 'ETH_TO_USD' ? "Confirm the buyer's payment" : "Confirm cryptocurrency sent"}
-                      </Text>
-                    </HStack>
-                    <Box bg="gray.800" p={4} borderRadius="md">
-                      <Text mb={2}>{orderDetails.type === 'ETH_TO_USD' ? 'Bank Card' : 'Wallet Address'}</Text>
-                      <Text color="gray.400">{orderDetails.sellerInfo.name}</Text>
-                      <Text color="gray.400">{orderDetails.sellerInfo.accountNumber}</Text>
-                    </Box>
-                  </Box>
-                  <Box>
-                    <HStack mb={2}>
-                      <Box bg="yellow.400" color="black" px={2} py={1} borderRadius="full">3</Box>
-                      <Text fontWeight="bold">
-                        {orderDetails.type === 'ETH_TO_USD' ? 'Confirm Payment received' : 'Confirm Cryptocurrency sent'}
-                      </Text>
-                    </HStack>
-                    <Text color="gray.400" mb={4}>
-                      {orderDetails.type === 'ETH_TO_USD'
-                        ? "After confirming that payment has been received, click the 'Payment Received' button below."
-                        : "After confirming that you've sent the cryptocurrency, click the 'Cryptocurrency Sent' button below."}
-                    </Text>
-                    <HStack>
-                      <Button colorScheme="yellow" onClick={handleCompleteStep}>
-                        {orderDetails.type === 'ETH_TO_USD' ? 'Payment Received' : 'Cryptocurrency Sent'}
-                      </Button>
-                      <Button variant="outline" colorScheme="red">
-                        Transaction issue, I want to appeal
-                      </Button>
-                    </HStack>
-                  </Box>
-                </VStack>
+                {orderDetails.type === 'ETH_TO_USD' ? (
+                  <SellerOrderExecution orderDetails={orderDetails} handleCompleteStep={handleCompleteStep} />
+                ) : (
+                  <BuyerOrderExecution orderDetails={orderDetails} handleCompleteStep={handleCompleteStep} />
+                )}
               </Box>
               <VStack flex={1} p={6} align="stretch" spacing={4}>
                 <Text fontSize="xl" fontWeight="bold">Chat</Text>
