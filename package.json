@@ -19,7 +19,7 @@
     "@web3auth/openlogin-adapter": "^8.12.4",
     "axios": "^1.7.7",
     "ethers": "^6.13.2",
-    "framer-motion": "^11.3.30",
+    "framer-motion": "^11.3.31",
     "mongoose": "^8.0.2",
     "next": "14.2.7",
     "react": "^18",

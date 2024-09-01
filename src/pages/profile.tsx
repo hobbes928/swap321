@@ -82,6 +82,8 @@ const ProfilePage: React.FC = () => {
 
       try {
         const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser); // Set user immediately
+
         const providerConfig = JSON.parse(storedProvider);
         
         const chainConfig = {
@@ -111,16 +113,20 @@ const ProfilePage: React.FC = () => {
         
         if (web3authInstance.provider) {
           const rpc = new RPC(web3authInstance.provider as IProvider);
-          const [address] = await rpc.getAccounts();
-          const fetchedBalance = await rpc.getBalance();
-          const fetchedAssets = await rpc.getAssets();
-          const fetchedNFTs = await rpc.getNFTs();
-          const fetchedTransactions = await rpc.getTransactionHistory();
           
-          setUser({
-            ...parsedUser,
+          // Fetch data concurrently
+          const [address, fetchedBalance, fetchedAssets, fetchedNFTs, fetchedTransactions] = await Promise.all([
+            rpc.getAccounts().then(accounts => accounts[0]),
+            rpc.getBalance(),
+            rpc.getAssets(),
+            rpc.getNFTs(),
+            rpc.getTransactionHistory()
+          ]);
+
+          setUser((prevUser) => ({
+            ...prevUser!,
             walletAddress: address,
-          });
+          }));
           setBalance(fetchedBalance);
           setAssets(fetchedAssets);
           setNfts(fetchedNFTs);

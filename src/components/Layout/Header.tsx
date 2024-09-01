@@ -105,7 +105,10 @@ const Header: React.FC = () => {
     handleGeneral({
       walletAddress: "",
       email: "",
-    })
+    });
+
+    // Redirect to homepage
+    router.push('/');
   };
 
   return (
