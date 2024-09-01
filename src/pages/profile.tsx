@@ -34,7 +34,9 @@ import {
   useDisclosure,
   Image,
   HStack,
-  Spacer
+  Spacer,
+  FormControl,
+  FormLabel
 } from '@chakra-ui/react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -73,6 +75,10 @@ const ProfilePage: React.FC = () => {
   const [gasFee, setGasFee] = useState<string>('0');
   const [totalAmount, setTotalAmount] = useState<string>('0');
   const [isPolling, setIsPolling] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState({
+    paypal: '',
+    bankAccount: '',
+  });
 
   const pollTransactions = useCallback(async (rpc: RPC) => {
     const pollInterval = 10000; // Poll every 10 seconds
@@ -179,6 +185,28 @@ const ProfilePage: React.FC = () => {
 
     initWeb3Auth();
   }, [pollTransactions]);
+
+  useEffect(() => {
+    const fetchPaymentDetails = async () => {
+      try {
+        const response = await fetch('/api/payment-details', {
+          headers: {
+            'x-user-email': user?.email || '',
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentDetails(data);
+        }
+      } catch (error) {
+        console.error('Error fetching payment details:', error);
+      }
+    };
+
+    if (user) {
+      fetchPaymentDetails();
+    }
+  }, [user]);
 
   const handleCopyWalletAddress = () => {
     onCopy();
@@ -409,6 +437,45 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handlePaymentDetailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPaymentDetails(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  const savePaymentDetails = async () => {
+    try {
+      const response = await fetch('/api/payment-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': user?.email || '',
+        },
+        body: JSON.stringify(paymentDetails),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Payment details saved",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        throw new Error('Failed to save payment details');
+      }
+    } catch (error) {
+      console.error('Error saving payment details:', error);
+      toast({
+        title: "Error saving payment details",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   if (error) {
     return (
       <Box minHeight="100vh" bg="black" color="white">
@@ -466,6 +533,29 @@ const ProfilePage: React.FC = () => {
                     </Button>
                   </Tooltip>
                 </Flex>
+                
+                {/* Payment Details Section */}
+                <Text fontWeight="bold">Payment Details</Text>
+                <FormControl>
+                  <FormLabel>PayPal Email</FormLabel>
+                  <Input
+                    name="paypal"
+                    value={paymentDetails.paypal}
+                    onChange={handlePaymentDetailsChange}
+                    placeholder="Enter PayPal email"
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Bank Account</FormLabel>
+                  <Input
+                    name="bankAccount"
+                    value={paymentDetails.bankAccount}
+                    onChange={handlePaymentDetailsChange}
+                    placeholder="Enter bank account details"
+                  />
+                </FormControl>
+                <Button onClick={savePaymentDetails} colorScheme="blue" size="sm">Save Payment Details</Button>
+                
                 <Text fontWeight="bold">Balance</Text>
                 <Text color="brand.cyan" fontSize="lg">{balance} ETH</Text>
                 <Button colorScheme="purple" size="sm">Register a Passkey</Button>
