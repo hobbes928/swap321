@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import OpenOrderModal from '../Exchange/OrderForm';
 import SignInModal from '../Auth/SignInModal';
+import { Web3Auth } from "@web3auth/modal";
+import { CHAIN_NAMESPACES } from "@web3auth/base";
+import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 
 const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -34,9 +37,40 @@ const Header: React.FC = () => {
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      const chainConfig = {
+        chainNamespace: CHAIN_NAMESPACES.EIP155,
+        chainId: "0xaa36a7", // Sepolia testnet
+        rpcTarget: process.env.NEXT_PUBLIC_RPC_URL || "",
+        displayName: "Ethereum Sepolia Testnet",
+        blockExplorer: "https://sepolia.etherscan.io",
+        ticker: "ETH",
+        tickerName: "Ethereum",
+      };
+
+      const privateKeyProvider = new EthereumPrivateKeyProvider({
+        config: { chainConfig }
+      });
+
+      const web3AuthInstance = new Web3Auth({
+        clientId: process.env.NEXT_PUBLIC_CLIENT_ID || "",
+        web3AuthNetwork: "sapphire_devnet",
+        chainConfig,
+        privateKeyProvider,
+      });
+
+      await web3AuthInstance.initModal();
+      if (web3AuthInstance.connected) {
+        await web3AuthInstance.logout();
+      }
+    } catch (error) {
+      console.error("Error during sign out:", error);
+    }
+
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('web3authProvider');
   };
 
   return (
