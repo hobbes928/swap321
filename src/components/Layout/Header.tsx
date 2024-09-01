@@ -1,10 +1,11 @@
 // src/components/Layout/Header.tsx
 import React, { useState, useEffect } from 'react';
-import { Flex, Button, Image, HStack, Box, useDisclosure, Menu, MenuButton, MenuList, MenuItem, Avatar } from '@chakra-ui/react';
+import { Flex, Button, Image, HStack, Box, useDisclosure, Menu, MenuButton, MenuList, MenuItem, Avatar, useToast } from '@chakra-ui/react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import OpenOrderModal from '../Exchange/OrderForm';
 import SignInModal from '../Auth/SignInModal';
+import { GeneralProps, useGeneralStore } from '@/hooks/useGeneral';
 
 const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -12,7 +13,27 @@ const Header: React.FC = () => {
   const { isOpen: isOpenOrderOpen, onOpen: onOpenOrderOpen, onClose: onCloseOrderOpen } = useDisclosure();
   const { isOpen: isSignInOpen, onOpen: onOpenSignIn, onClose: onCloseSignIn } = useDisclosure();
   const router = useRouter();
+  const toast = useToast();
+  const handleGeneral = useGeneralStore(
+    (state: GeneralProps) => state.handleGeneral
+  );
 
+  const general = useGeneralStore(
+    (state: GeneralProps) => state.general
+  );
+
+  const handleOpenOrderModal = () => {
+    if(!general.walletAddress){
+      return toast({
+        title: "Wallet Address",
+        description: "Please connect your wallet.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    onOpenOrderOpen()
+  }
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
@@ -25,18 +46,31 @@ const Header: React.FC = () => {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedStoredUser = JSON.parse(storedUser)
+      setUser(parsedStoredUser);
+      handleGeneral({
+        walletAddress: parsedStoredUser?.walletAddress || "",
+        email: parsedStoredUser?.email || "",
+      })
     }
   }, []);
 
   const handleSignIn = (userData) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
+    handleGeneral({
+      walletAddress: userData?.walletAddress || "",
+      email: userData?.email || "",
+    })
   };
 
   const handleSignOut = () => {
     setUser(null);
     localStorage.removeItem('user');
+    handleGeneral({
+      walletAddress: "",
+      email: "",
+    })
   };
 
   return (
@@ -56,7 +90,7 @@ const Header: React.FC = () => {
             <Image src="/logo.png" alt="Logo" boxSize="50px" />
           </Link>
           <HStack spacing={4}>
-            <Button variant="outline" onClick={onOpenOrderOpen}>Open Order</Button>
+            <Button variant="outline" onClick={handleOpenOrderModal}>Open Order</Button>
             <Button variant="outline">Contacts</Button>
             {user ? (
               <Menu>
