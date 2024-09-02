@@ -96,6 +96,7 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({
         currency: orderType,
         blockchain_tx: "0x123456...",
         PG_tx: "PAYPAL12345",
+        updated_at: Date.now(),
       };
       let response;
       if (mode === "create") {

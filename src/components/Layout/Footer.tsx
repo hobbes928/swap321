@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
     <Box as="footer" width="100%" bg="black" py={4} position="fixed" bottom={0}>
       <Container maxW="container.xl">
         <HStack justifyContent="space-between" alignItems="center">
-          <Text color="brand.neonBlue">&copy; 2023 Your Company Name. All rights reserved.</Text>
+          <Text color="brand.neonBlue">&copy; 2024 SWAP321. All rights reserved.</Text>
           <HStack spacing={4}>
             <Link href="https://twitter.com" isExternal>
               <Icon as={FaTwitter} w={6} h={6} color="brand.neonPurple" />
