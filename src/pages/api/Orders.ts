@@ -11,6 +11,10 @@ export default async function handler(
   if (req.method === "POST") {
     try {
       await connectMongoDB();
+      if (orderData?.getOne) {
+        const order = await Orders.findById(orderData?._id);
+        return res.json({ order });
+      }
       const newOrder = await Orders.create(orderData);
       return res.json({ newOrder });
     } catch (error) {

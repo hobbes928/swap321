@@ -23,8 +23,6 @@ import { useRouter } from "next/router";
 import LoadingAnimation from "../shared/Loading";
 import { GeneralProps, useGeneralStore } from "@/hooks/useGeneral";
 import SignInModal from "../Auth/SignInModal";
-import RPC from "../Auth/ethersRPC";
-import { sliceAddress } from "@/utils/utlis";
 
 const MotionFlex = motion(Flex);
 
@@ -56,10 +54,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     (state: GeneralProps) => state.handleGeneral
   );
 
-  const web3AuthProvider = useGeneralStore(
-    (state: GeneralProps) => state.web3Auth
-  );
-
   const handleConnect = async () => {
     setIsLoading(true);
     onOpenSignIn();
@@ -67,21 +61,25 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   const handleConfirm = async () => {
-    if (web3AuthProvider) {
-      setIsLoading(true);
-      console.log(web3AuthProvider);
-
-      const rpc = new RPC(web3AuthProvider as any);
-      const balance = await rpc.getBalance();
-      console.log("balance:", balance);
+    try {
+      if (order) {
+        setIsLoading(true);
+        router.push(`/orders/${order._id}`);
+      }
+    } catch (error) {
+      toast({
+        title: "User information or provider not found. Please sign in again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
       setIsLoading(false);
-      router.push("/orderExecution");
     }
   };
 
   useEffect(() => {
     if (general.email) {
-      // for now, we'll if the email is present, we must check if the current user is the seller or the one who opened this order
       setIsValidated(true);
     } else {
       setIsValidated(false);
