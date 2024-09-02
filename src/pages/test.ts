@@ -94,8 +94,7 @@ const OrderExecutionPage: React.FC = () => {
     return data.access_token;
   }
 
-  /*
-  const verifyPayPalTransaction = async (transactionId: string) => {
+/*  const verifyPayPalTransaction = async (transactionId: string) => {
     try {
       const accessToken = await getAccessToken();
 
@@ -119,7 +118,6 @@ const OrderExecutionPage: React.FC = () => {
       });
     }
   };
-
 */
 
 const verifyPayPalTransaction = async (transactionId: string) => {
@@ -144,6 +142,21 @@ const verifyPayPalTransaction = async (transactionId: string) => {
     });
   }
 };
+
+
+  const handleVerifyTransaction = () => {
+    if (transactionId) {
+      verifyPayPalTransaction(transactionId);
+    } else {
+      toast({
+        title: "Error",
+        description: "Please enter a transaction ID",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   useEffect(() => {
     const mockOrderDetails: OrderDetails = {
@@ -194,7 +207,7 @@ const verifyPayPalTransaction = async (transactionId: string) => {
             <Box p={4} borderBottom="1px solid" borderColor="gray.700">
               <Text fontSize="2xl" fontWeight="bold">Verify Payment</Text>
               <Text color="gray.400">
-                Please confirm that you have {orderDetails.type === 'ETH_TO_USD' ? 'received payment from the buyer' : 'sent the cryptocurrency to the seller'}
+                Please confirm that you have {orderDetails?.type === 'ETH_TO_USD' ? 'received payment from the buyer' : 'sent the cryptocurrency to the seller'}
               </Text>
             </Box>
             <Flex>
@@ -239,7 +252,7 @@ const verifyPayPalTransaction = async (transactionId: string) => {
                         mt={4}
                         mb={2}
                       />
-                      <Button onClick={() => verifyPayPalTransaction(transactionId)} colorScheme="purple" width="full">
+                      <Button onClick={handleVerifyTransaction} colorScheme="purple" width="full">
                         Confirm
                       </Button>
                       {verificationResult && (
