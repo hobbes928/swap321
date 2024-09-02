@@ -25,7 +25,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaGoogle, FaApple, FaDollarSign, FaEthereum } from 'react-icons/fa';
 import { SiEthereum } from 'react-icons/si';
 import RPC from "./ethersRPC";
-import { GeneralProps, useGeneralStore } from '@/hooks/useGeneral';
 
 const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
@@ -46,10 +45,6 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
   const [isConnected, setIsConnected] = useState(false);
   const [showDollar, setShowDollar] = useState(true);
   const toast = useToast();
-
-  const handleWeb3Auth = useGeneralStore(
-    (state: GeneralProps) => state.handleWeb3Auth
-  );
 
   const initWeb3Auth = useCallback(async () => {
     setIsLoading(true);
@@ -168,7 +163,6 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
 
       setProvider(web3authProvider);
       
-      handleWeb3Auth(web3authProvider)
       const userInfo = await web3auth.getUserInfo();
       const rpc = new RPC(web3authProvider);
       const address = await rpc.getAccounts();

@@ -23,7 +23,6 @@ import { useRouter } from "next/router";
 import LoadingAnimation from "../shared/Loading";
 import { GeneralProps, useGeneralStore } from "@/hooks/useGeneral";
 import SignInModal from "../Auth/SignInModal";
-import RPC from "../Auth/ethersRPC";
 
 const MotionFlex = motion(Flex);
 
@@ -55,10 +54,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     (state: GeneralProps) => state.handleGeneral
   );
 
-  const web3AuthProvider = useGeneralStore(
-    (state: GeneralProps) => state.web3Auth
-  );
-
   const handleConnect = async () => {
     setIsLoading(true);
     onOpenSignIn();
@@ -66,21 +61,25 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   const handleConfirm = async () => {
-    if (web3AuthProvider) {
-      setIsLoading(true);
-      console.log(web3AuthProvider);
-
-      const rpc = new RPC(web3AuthProvider as any);
-      const balance = await rpc.getBalance();
-      console.log("balance:", balance);
+    try {
+      if (order) {
+        setIsLoading(true);
+        router.push(`/orders/${order._id}`);
+      }
+    } catch (error) {
+      toast({
+        title: "User information or provider not found. Please sign in again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
       setIsLoading(false);
-      router.push("/orderExecution");
     }
   };
 
   useEffect(() => {
     if (general.email) {
-      // for now, we'll if the email is present, we must check if the current user is the seller or the one who opened this order
       setIsValidated(true);
     } else {
       setIsValidated(false);
@@ -113,17 +112,21 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <HStack justify="space-between">
               <Text>Order Type:</Text>
               <Flex alignItems="center">
-                {order.type === "ETH_TO_USD" ? (
+                {order?.currency === "ETH_TO_USD" ? (
                   <>
                     <FaEthereum color="#00FFFF" />
-                    <Text ml={2}>ETH ⇔ USD</Text>
-                    <FaDollarSign color="#00FF00" ml={2} />
+                    <Text ml={2} mr={2}>
+                      ETH ⇔ USD
+                    </Text>
+                    <FaDollarSign color="#00FF00" />
                   </>
                 ) : (
                   <>
                     <FaDollarSign color="#00FF00" />
-                    <Text ml={2}>USD ⇔ ETH</Text>
-                    <FaEthereum color="#00FFFF" ml={2} />
+                    <Text ml={2} mr={2}>
+                      USD ⇔ ETH
+                    </Text>
+                    <FaEthereum color="#00FFFF" />
                   </>
                 )}
               </Flex>
@@ -131,18 +134,19 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <HStack justify="space-between">
               <Text>Amount:</Text>
               <Text>
-                {order.amount} {order.type === "ETH_TO_USD" ? "ETH" : "USD"}
+                {order?.amount}{" "}
+                {order?.currency === "ETH_TO_USD" ? "ETH" : "USD"}
               </Text>
             </HStack>
             <HStack justify="space-between">
               <Text>Time Remaining:</Text>
-              <Text>{order.time}</Text>
+              <Text>{order?.time}</Text>
             </HStack>
             <HStack justify="space-between">
               <Text>Seller Wallet:</Text>
-              <Text>{order.wallet}</Text>
+              <Text>{order?.seller_address}</Text>
             </HStack>
-            <VStack align="stretch">
+            {/* <VStack align="stretch">
               <Text>Your Wallet Address:</Text>
               <Input
                 value={walletAddress}
@@ -150,7 +154,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 placeholder="Enter your wallet address"
                 bg="rgba(60, 60, 60, 0.6)"
               />
-            </VStack>
+            </VStack> */}
             {isLoading ? (
               <LoadingAnimation />
             ) : (

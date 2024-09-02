@@ -1,36 +1,49 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { Box, VStack, Container, Text, Heading, Image, Flex, useDisclosure } from '@chakra-ui/react';
-import Header from '../components/Layout/Header';
-import Footer from '../components/Layout/Footer';
-import { motion, useAnimation } from 'framer-motion';
-import { FaEthereum, FaDollarSign } from 'react-icons/fa';
-import Head from 'next/head';
-import OrderDetailsModal from '../components/Exchange/OrderBook';
+import React, { useRef, useEffect, useState } from "react";
+import {
+  Box,
+  VStack,
+  Container,
+  Text,
+  Heading,
+  Image,
+  Flex,
+  useDisclosure,
+  useToast,
+} from "@chakra-ui/react";
+import Header from "../components/Layout/Header";
+import Footer from "../components/Layout/Footer";
+import { motion, useAnimation } from "framer-motion";
+import { FaEthereum, FaDollarSign } from "react-icons/fa";
+import Head from "next/head";
+import OrderDetailsModal from "../components/Exchange/OrderBook";
+import { sliceAddress } from "@/utils/utlis";
+import LoadingAnimation from "@/components/shared/Loading";
+import OpenOrderModal from "@/components/Exchange/OrderForm";
 
 const MotionBox = motion(Box);
 
-const generateRandomTime = (seed: number): string => {
-  const hours = (seed % 24).toString().padStart(2, '0');
-  const minutes = ((seed * 60) % 60).toString().padStart(2, '0');
-  const seconds = ((seed * 3600) % 60).toString().padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
-};
-
-const LiveOrder: React.FC<{ index: number; opacity: number; onClick: () => void }> = ({ index, opacity, onClick }) => {
-  const time = React.useMemo(() => generateRandomTime(index), [index]);
-  const isCryptoToFiat = index % 2 === 0;
+const LiveOrder: React.FC<{
+  index: number;
+  order: any;
+  onClick: () => void;
+}> = ({ index, order, onClick }) => {
+  const time = new Date().toLocaleString();
+  const isCryptoToFiat = order?.currency === "ETH_TO_USD";
   const controls = useAnimation();
 
   useEffect(() => {
-    controls.start({ opacity, y: 0 });
-  }, [opacity, controls]);
+    controls.start({ opacity: 1, y: 0 });
+  }, [controls]);
 
   return (
     <MotionBox
       initial={{ opacity: 0, y: 20 }}
       animate={controls}
       transition={{ duration: 0.2, delay: index * 0.03 }}
-      whileHover={{ scale: 1.05, boxShadow: "0px 0px 8px rgba(255,255,255,0.2)" }}
+      whileHover={{
+        scale: 1.05,
+        boxShadow: "0px 0px 8px rgba(255,255,255,0.2)",
+      }}
       bg="rgba(60, 60, 60, 0.6)"
       p={4}
       borderRadius="md"
@@ -39,19 +52,23 @@ const LiveOrder: React.FC<{ index: number; opacity: number; onClick: () => void 
       onClick={onClick}
     >
       <Flex justifyContent="space-between" alignItems="center">
-        <Text>0x1234...5678</Text>
+        <Text>{sliceAddress(order?.seller_address)}</Text>
         <Flex alignItems="center">
           {isCryptoToFiat ? (
             <>
               <FaEthereum color="#00FFFF" />
-              <Text ml={2}>ETH ⇔ USD</Text>
-              <FaDollarSign color="#00FF00" ml={2} />
+              <Text ml={2} mr={2}>
+                ETH ⇔ USD
+              </Text>
+              <FaDollarSign color="#00FF00" />
             </>
           ) : (
             <>
               <FaDollarSign color="#00FF00" />
-              <Text ml={2}>USD ⇔ ETH</Text>
-              <FaEthereum color="#00FFFF" ml={2} />
+              <Text ml={2} mr={2}>
+                USD ⇔ ETH
+              </Text>
+              <FaEthereum color="#00FFFF" />
             </>
           )}
         </Flex>
@@ -62,42 +79,97 @@ const LiveOrder: React.FC<{ index: number; opacity: number; onClick: () => void 
 };
 
 const HomePage: React.FC = () => {
-  const [orders, setOrders] = useState(Array(20).fill(0));
+  const [orders, setOrders] = useState<any[]>([]);
   const ordersRef = useRef<HTMLDivElement>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isOpenBuyerModal,
+    onOpen: onOpenBuyerModal,
+    onClose: onCloseBuyerModal,
+  } = useDisclosure();
+  const {
+    isOpen: isOpenSellerModal,
+    onOpen: onOpenSellerModal,
+    onClose: onCloseSellerModal,
+  } = useDisclosure();
+
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalVolume, setTotalVolume] = useState(0);
+  const toast = useToast();
+  const handleOrderClick = (order: any) => {
+    setSelectedOrder(order);
+
+    const storedUser = localStorage.getItem("user");
+
+    if (!storedUser) {
+      return toast({
+        title: "User information or provider not found. Please sign in again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+
+    const parsedUser = JSON.parse(storedUser);
+
+    if (parsedUser?.email === order?.seller_email) {
+      onOpenSellerModal();
+    } else {
+      onOpenBuyerModal();
+    }
+  };
+
+  const fetchAllOrders = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/Orders", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.ok) {
+        const responseData = await response.json();
+        const orders = responseData?.orders || [];
+        setOrders(orders);
+        console.log("responseData:", orders);
+      }
+    } catch (error) {
+      setOrders([]);
+      console.log("Error:", Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  interface GlobalData {
+    data: {
+      total_volume: {
+        usd: number;
+      };
+    };
+  }
+
+  // API route to fetch total trading volume
+  const fetchTotalVolume = async () => {
+    try {
+      const response = await fetch("https://api.coingecko.com/api/v3/global");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data: ${response.statusText}`);
+      }
+
+      const data: GlobalData = await response.json();
+      const totalVolume = data.data.total_volume.usd;
+      setTotalVolume(totalVolume);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (ordersRef.current) {
-        const { top, bottom } = ordersRef.current.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-
-        setOrders(prevOrders => 
-          prevOrders.map((_, index) => {
-            const elementTop = top + index * 76;
-            const elementBottom = elementTop + 76;
-
-            if (elementTop > viewportHeight || elementBottom < 0) {
-              return 0;
-            } else {
-              const visibilityPercentage = Math.min(1, (viewportHeight - elementTop) / 76);
-              return Math.max(0, visibilityPercentage);
-            }
-          })
-        );
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+    fetchTotalVolume();
+    fetchAllOrders();
   }, []);
-
-  const handleOrderClick = (order) => {
-    setSelectedOrder(order);
-    onOpen();
-  };
 
   return (
     <>
@@ -129,7 +201,12 @@ const HomePage: React.FC = () => {
         <Header />
         <Container maxW="container.xl" centerContent py={8}>
           <VStack spacing={12} align="center" w="100%">
-            <Image src="/logo.png" alt="Swap321 Logo" width={200} height={200} />
+            <Image
+              src="/logo.png"
+              alt="Swap321 Logo"
+              width={200}
+              height={200}
+            />
             <VStack spacing={6} textAlign="center">
               <Heading as="h1" size="2xl" color="white">
                 SWAP321
@@ -140,7 +217,9 @@ const HomePage: React.FC = () => {
             </VStack>
             <Box w="100%" maxW="3xl" textAlign="center">
               <Text fontSize="5xl" fontWeight="bold" color="white" mb={4}>
-                $ 8,611,414,816.33
+                {`$${Number(totalVolume).toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })} USD`}
               </Text>
               <Text fontSize="md" color="gray.400">
                 Total trading volume across all markets
@@ -148,26 +227,46 @@ const HomePage: React.FC = () => {
             </Box>
           </VStack>
         </Container>
-        <VStack ref={ordersRef} spacing={4} w="100%" maxW="2xl" mx="auto" pb="100px">
-          <Text fontSize="xl" fontWeight="bold" color="gray.300">Live Orders</Text>
-          {orders.map((opacity, index) => (
-            <LiveOrder 
-              key={index} 
-              index={index} 
-              opacity={opacity} 
-              onClick={() => handleOrderClick({
-                id: index,
-                wallet: `0x1234...${index.toString().padStart(4, '0')}`,
-                type: index % 2 === 0 ? 'ETH_TO_USD' : 'USD_TO_ETH',
-                amount: (Math.random() * 10).toFixed(2),
-                time: generateRandomTime(index)
-              })}
-            />
-          ))}
+        <VStack
+          ref={ordersRef}
+          spacing={4}
+          w="100%"
+          maxW="2xl"
+          mx="auto"
+          pb="100px"
+        >
+          <Text fontSize="xl" fontWeight="bold" color="gray.300">
+            Live Orders
+          </Text>
+          {isLoading && <LoadingAnimation />}
+
+          {!isLoading &&
+            (orders.length > 0 ? (
+              orders.map((order, index) => (
+                <LiveOrder
+                  key={index}
+                  index={index}
+                  order={order}
+                  onClick={() => handleOrderClick(order)}
+                />
+              ))
+            ) : (
+              <Text>There is no open order.</Text>
+            ))}
         </VStack>
         <Footer />
       </Box>
-      <OrderDetailsModal isOpen={isOpen} onClose={onClose} order={selectedOrder} />
+      <OrderDetailsModal
+        isOpen={isOpenBuyerModal}
+        onClose={onCloseBuyerModal}
+        order={selectedOrder}
+      />
+      <OpenOrderModal
+        isOpen={isOpenSellerModal}
+        onClose={onCloseSellerModal}
+        order={selectedOrder}
+        mode={"edit"}
+      />
     </>
   );
 };
