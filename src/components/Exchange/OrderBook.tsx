@@ -24,6 +24,7 @@ import LoadingAnimation from "../shared/Loading";
 import { GeneralProps, useGeneralStore } from "@/hooks/useGeneral";
 import SignInModal from "../Auth/SignInModal";
 import RPC from "../Auth/ethersRPC";
+import { sliceAddress } from "@/utils/utlis";
 
 const MotionFlex = motion(Flex);
 
@@ -113,17 +114,21 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <HStack justify="space-between">
               <Text>Order Type:</Text>
               <Flex alignItems="center">
-                {order.type === "ETH_TO_USD" ? (
+                {order?.currency === "ETH_TO_USD" ? (
                   <>
                     <FaEthereum color="#00FFFF" />
-                    <Text ml={2}>ETH ⇔ USD</Text>
-                    <FaDollarSign color="#00FF00" ml={2} />
+                    <Text ml={2} mr={2}>
+                      ETH ⇔ USD
+                    </Text>
+                    <FaDollarSign color="#00FF00" />
                   </>
                 ) : (
                   <>
                     <FaDollarSign color="#00FF00" />
-                    <Text ml={2}>USD ⇔ ETH</Text>
-                    <FaEthereum color="#00FFFF" ml={2} />
+                    <Text ml={2} mr={2}>
+                      USD ⇔ ETH
+                    </Text>
+                    <FaEthereum color="#00FFFF" />
                   </>
                 )}
               </Flex>
@@ -131,18 +136,19 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <HStack justify="space-between">
               <Text>Amount:</Text>
               <Text>
-                {order.amount} {order.type === "ETH_TO_USD" ? "ETH" : "USD"}
+                {order?.amount}{" "}
+                {order?.currency === "ETH_TO_USD" ? "ETH" : "USD"}
               </Text>
             </HStack>
             <HStack justify="space-between">
               <Text>Time Remaining:</Text>
-              <Text>{order.time}</Text>
+              <Text>{order?.time}</Text>
             </HStack>
             <HStack justify="space-between">
               <Text>Seller Wallet:</Text>
-              <Text>{order.wallet}</Text>
+              <Text>{order?.seller_address}</Text>
             </HStack>
-            <VStack align="stretch">
+            {/* <VStack align="stretch">
               <Text>Your Wallet Address:</Text>
               <Input
                 value={walletAddress}
@@ -150,7 +156,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 placeholder="Enter your wallet address"
                 bg="rgba(60, 60, 60, 0.6)"
               />
-            </VStack>
+            </VStack> */}
             {isLoading ? (
               <LoadingAnimation />
             ) : (

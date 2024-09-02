@@ -16,5 +16,21 @@ export default async function handler(
     } catch (error) {
       console.log(error);
     }
+  } else if (req.method === "GET") {
+    try {
+      await connectMongoDB();
+      const orders = await Orders.find({ status: "pending" });
+      return res.json({ orders });
+    } catch (error) {
+      console.log(error);
+    }
+  } else if (req.method === "PUT") {
+    try {
+      await connectMongoDB();
+      const orders = await Orders.findByIdAndUpdate(orderData?._id, orderData);
+      return res.json({ orders });
+    } catch (error) {
+      console.log(error);
+    }
   }
 }
