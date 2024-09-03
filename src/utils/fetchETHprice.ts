@@ -59,7 +59,7 @@ const provider = ethers.getDefaultProvider("homestead", {
 
 // Chainlink ETH/USD Price Feed Contract Address
 const ethUsdPriceFeedAddress = process.env
-  .NEXT_PUBLIC_ethUsdPriceFeedAddress as string;
+  .NEXT_PUBLIC_ETH_USD_PRICE_FEED_ADDRESS as string;
 
 export async function fetchEthPrice() {
   if (!ethUsdPriceFeedAddress)
