@@ -81,21 +81,13 @@ const LiveOrder: React.FC<{
 const HomePage: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const ordersRef = useRef<HTMLDivElement>(null);
-  const {
-    isOpen: isOpenBuyerModal,
-    onOpen: onOpenBuyerModal,
-    onClose: onCloseBuyerModal,
-  } = useDisclosure();
-  const {
-    isOpen: isOpenSellerModal,
-    onOpen: onOpenSellerModal,
-    onClose: onCloseSellerModal,
-  } = useDisclosure();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [totalVolume, setTotalVolume] = useState(0);
   const toast = useToast();
+
   const handleOrderClick = (order: any) => {
     setSelectedOrder(order);
 
@@ -109,14 +101,7 @@ const HomePage: React.FC = () => {
         isClosable: true,
       });
     }
-
-    const parsedUser = JSON.parse(storedUser);
-
-    if (parsedUser?.email === order?.seller_email) {
-      onOpenSellerModal();
-    } else {
-      onOpenBuyerModal();
-    }
+    onOpen();
   };
 
   const fetchAllOrders = async () => {
@@ -257,15 +242,9 @@ const HomePage: React.FC = () => {
         <Footer />
       </Box>
       <OrderDetailsModal
-        isOpen={isOpenBuyerModal}
-        onClose={onCloseBuyerModal}
+        isOpen={isOpen}
+        onClose={onClose}
         order={selectedOrder}
-      />
-      <OpenOrderModal
-        isOpen={isOpenSellerModal}
-        onClose={onCloseSellerModal}
-        order={selectedOrder}
-        mode={"edit"}
       />
     </>
   );

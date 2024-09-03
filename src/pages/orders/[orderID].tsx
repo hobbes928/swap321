@@ -1,14 +1,18 @@
+import BuyerOrderExecution from "@/components/Exchange/BuyerOrder";
+import SellerOrderExecution from "@/components/Exchange/SellerOrder";
 import LoadingAnimation from "@/components/shared/Loading";
 import { useToast } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { IOrder } from "../../../lib/database/orders";
 
 export default function OrderID() {
   const router = useRouter();
   const orderID = router.query.orderID;
 
-  const [order, setOrder] = useState();
+  const [order, setOrder] = useState<IOrder>();
   const [isLoading, setIsLoading] = useState(true);
+  const [isBuyer, setIsBuyer] = useState(true);
   const toast = useToast();
 
   const fetchAllOrders = async () => {
@@ -46,9 +50,9 @@ export default function OrderID() {
         const parsedUser = JSON.parse(storedUser);
 
         if (parsedUser?.email === order?.seller_email) {
-          // onOpenSellerModal();
+          setIsBuyer(false);
         } else {
-          // onOpenBuyerModal();
+          setIsBuyer(true);
         }
       }
     } catch (error) {
@@ -63,5 +67,15 @@ export default function OrderID() {
     fetchAllOrders();
   }, [orderID]);
   // if (!order) return null;
-  return <>{isLoading ? <LoadingAnimation /> : <p>Post: {orderID}</p>}</>;
+  return (
+    <>
+      {isLoading ? (
+        <LoadingAnimation />
+      ) : isBuyer ? (
+        <BuyerOrderExecution orderDetails={order} />
+      ) : (
+        <SellerOrderExecution orderDetails={order} />
+      )}
+    </>
+  );
 }
