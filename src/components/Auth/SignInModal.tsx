@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaGoogle, FaApple, FaDollarSign, FaEthereum } from 'react-icons/fa';
 import { SiEthereum } from 'react-icons/si';
 import RPC from "./ethersRPC";
+import { useGeneralStore, GeneralProps } from "@/hooks/useGeneral";
 
 const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
@@ -45,6 +46,10 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
   const [isConnected, setIsConnected] = useState(false);
   const [showDollar, setShowDollar] = useState(true);
   const toast = useToast();
+
+  const handleWeb3AuthProvider = useGeneralStore(
+    (state: GeneralProps) => state.handleWeb3AuthProvider
+  );
 
   const initWeb3Auth = useCallback(async () => {
     setIsLoading(true);
@@ -162,6 +167,7 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
       }
 
       setProvider(web3authProvider);
+      handleWeb3AuthProvider({ provider: web3authProvider });
       
       const userInfo = await web3auth.getUserInfo();
       const rpc = new RPC(web3authProvider);
@@ -354,14 +360,14 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onSignIn }) 
                               {showDollar ? (
                                 <>
                                   <FaDollarSign color="#00FF00" />
-                                  <Text ml={2}>USD ⇔ ETH</Text>
-                                  <FaEthereum color="#00FFFF" ml={2} />
+                                  <Text ml={2} mr={2}>USD ⇔ ETH</Text>
+                                  <FaEthereum color="#00FFFF"/>
                                 </>
                               ) : (
                                 <>
                                   <FaEthereum color="#00FFFF" />
-                                  <Text ml={2}>ETH ⇔ USD</Text>
-                                  <FaDollarSign color="#00FF00" ml={2} />
+                                  <Text ml={2} mr={2}>ETH ⇔ USD</Text>
+                                  <FaDollarSign color="#00FF00"/>
                                 </>
                               )}
                             </Flex>

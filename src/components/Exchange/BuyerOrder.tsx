@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Web3Auth } from "@web3auth/modal";
-import { CHAIN_NAMESPACES } from "@web3auth/base";
+import { CHAIN_NAMESPACES, IProvider } from "@web3auth/base";
+import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import {
   Box,
   Flex,
@@ -17,7 +18,8 @@ import Head from "next/head";
 import { IOrder } from "../../../lib/database/orders";
 import OrderInfoCard from "./OrderInfoCard";
 import { ethers } from 'ethers';
-import EscrowABI from '../../../smart_contracts/artifacts/contracts/Escrow.sol/Escrow.json';
+import EscrowABI from '../../../smart_contracts/contracts/artifacts/Escrow.json';
+import { useGeneralStore, GeneralProps } from "@/hooks/useGeneral";
 
 const MotionBox = motion(Box);
 interface BuyerOrderExecutionProps {
@@ -40,54 +42,77 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
   const [escrowContract, setEscrowContract] = useState<ethers.Contract | null>(null);
   const [latestEscrowId, setLatestEscrowId] = useState<number | null>(null);
   const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
+  const [isWeb3AuthReady, setIsWeb3AuthReady] = useState(false);
   const toast = useToast();
+  const web3AuthProvider = useGeneralStore(
+    (state: GeneralProps) => state.web3AuthProvider
+  );
 
-  useEffect(() => {
-    initializeWeb3Auth();
-  }, []);
-
+/*
   const initializeWeb3Auth = async () => {
     try {
+      const chainConfig = {
+        chainNamespace: CHAIN_NAMESPACES.EIP155,
+        chainId: "0xaa36a7", // Sepolia testnet
+        rpcTarget: "https://sepolia.infura.io/v3/2c95e7227a524c75b007db514c409415", // Use your own Infura ID or another RPC provider
+        displayName: "Sepolia Testnet",
+        blockExplorerUrl: "https://sepolia.etherscan.io",
+        ticker: "ETH",
+        tickerName: "Ethereum",
+      };
+
       const web3auth = new Web3Auth({
-        clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID!,
-        chainConfig: {
-          chainNamespace: CHAIN_NAMESPACES.EIP155,
-          chainId: "0xaa36a7", // Sepolia testnet
-          rpcTarget: "https://sepolia.infura.io/v3/YOUR_INFURA_ID",
-          displayName: "Sepolia Testnet",
-          blockExplorerUrl: "https://sepolia.etherscan.io",
-          ticker: "ETH",
-          tickerName: "Ethereum",
-        },
+        clientId: process.env.NEXT_PUBLIC_CLIENT_ID!, // Make sure this is set correctly
+        web3AuthNetwork: "testnet",
+        chainConfig,
+        privateKeyProvider: new EthereumPrivateKeyProvider({ config: { chainConfig } }),
       });
 
-      setWeb3auth(web3auth);
       await web3auth.initModal();
+      setWeb3auth(web3auth);
     } catch (error) {
       console.error("Failed to initialize Web3Auth:", error);
     }
   };
+*/
+
+const escrowContractFunction = async () => {
+
+  try {
+    if (!web3AuthProvider) {
+      throw new Error("Failed to connect to Web3Auth");
+    }
+    console.log("before provider");
+    const provider = new ethers.BrowserProvider(web3AuthProvider.provider);
+    console.log("after provider");
+    const signer = await provider.getSigner();
+    console.log("signer", signer);
+    const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS!, EscrowABI, signer);
+    console.log("contract", contract);
+  
+    setEscrowContract(contract);
+    return contract;
+  } catch (error) {
+    console.error("Failed to initialize the contract:", error);
+
+
+  }}
 
   const initializeContract = async () => {
-    if (!web3auth) {
-      console.error("Web3Auth not initialized");
-      return;
-    }
 
     try {
-      const web3authProvider = await web3auth.connect();
-      if (!web3authProvider) {
-        throw new Error("Failed to connect to Web3Auth");
-      }
-
-      const provider = new ethers.BrowserProvider(web3authProvider);
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS!, EscrowABI.abi, provider);
-      setEscrowContract(contract);
-
+  
       // Get the latest escrow ID
+      const contract = await escrowContractFunction();
+      if (!contract) {
+        console.log("contract not initialized");
+        return;
+      }
       const latestId = await contract.getLatestEscrowId();
-      setLatestEscrowId(latestId.toNumber());
+
+      console.log("latestId", latestId);
+      setLatestEscrowId(Number(latestId) - 1);
+      console.log("latestId", Number(latestId) - 1);
     } catch (error) {
       console.error("Failed to initialize the contract:", error);
       toast({
@@ -102,6 +127,12 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
 
   const verifyPayPalTransaction = async (transactionId: string) => {
     try {
+      const contract = await escrowContractFunction();
+      if (!contract) {
+        console.log("contract not initialized");
+        return;
+      }
+      console.log("verifying transaction");
       const response = await fetch("/api/verifyPayPalTransaction", {
         method: "POST",
         headers: {
@@ -117,7 +148,9 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
 
       if (data.verified) {
         // If PayPal transaction is verified, call releaseEscrow
-        await releaseEscrow();
+        console.log("data verified");
+        await releaseEscrow(contract);
+        
       }
     } catch (error) {
       console.error("Error verifying PayPal transaction:", error);
@@ -128,19 +161,43 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
     }
   };
 
-  const releaseEscrow = async () => {
-    if (!escrowContract) {
+  const releaseEscrow = async (contract: ethers.Contract) => {
+    if (!contract) {
       console.error("Escrow contract is not initialized");
       return;
     }
 
-    if (latestEscrowId === null) {
-      console.error("Latest escrow ID is not set");
-      return;
-    }
+    // if (latestEscrowId === null) {
+    //   console.error("Latest escrow ID is not set");
+    //   return;
+    // }
 
     try {
-      const tx = await escrowContract.releaseEscrow(latestEscrowId);
+      // Get the current user's address
+      const signer = await contract.runner.provider.getSigner();
+      console.log("signer", signer);
+      const userAddress = await signer.getAddress();
+      console.log("userAddress", userAddress);  
+
+      // Get the escrow details
+      const [payer, payee, amount, isPaid] = await contract.getEscrowDetails(0);
+      console.log("payer", payer);
+      console.log("payee", payee);
+      console.log("amount", amount);
+      console.log("isPaid", isPaid);
+
+      // Check if the current user is the payee
+      if (userAddress.toLowerCase() !== payee.toLowerCase()) {
+        throw new Error("Only the payee can release the escrow");
+      }
+
+      // Check if the escrow has already been paid
+      if (isPaid) {
+        throw new Error("This escrow has already been paid");
+      }
+
+      const tx = await contract.releaseEscrow(0);
+      console.log("Releasing escrow...");
       await tx.wait();
       console.log("Escrow released successfully");
       toast({
@@ -154,7 +211,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       console.error("Failed to release escrow:", error);
       toast({
         title: "Error",
-        description: "Failed to release escrow. Please try again.",
+        description: `Failed to release escrow: ${error.message}`,
         status: "error",
         duration: 5000,
         isClosable: true,
