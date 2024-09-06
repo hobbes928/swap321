@@ -47,26 +47,46 @@ contract Escrow {
     // Function to release ETH from escrow to the payee
     function releaseEscrow(uint256 escrowId) external {
         EscrowTransaction storage escrow = escrows[escrowId];
-        require(msg.sender == appWallet, "Only app wallet can release funds");
+        require(msg.sender == escrow.payee, "Only app wallet can release funds");
 
         uint256 amount = escrowBalances[escrowId];
         require(amount > 0, "No funds in escrow");
         require(address(this).balance >= amount, "Insufficient contract balance");
 
-        // Transfer funds from contract to payee
-        (bool success, ) = payable(escrow.payee).call{value: amount}("");
-        require(success, "Transfer success");
-        escrowBalances[escrowId] = 0;
-        escrow.isPaid = true;
+        // Calculate gas cost
+        uint256 gasStart = gasleft();
         
-        emit EscrowReleased(escrowId, escrow.payee, amount);
+        // Transfer funds from contract to payee
+
+        
+        // Calculate actual gas used and cost
+        uint256 gasUsed = gasStart - gasleft();
+        uint256 gasCost = gasUsed * tx.gasprice;
+        uint256 newAmount = amount - gasCost;
+
+        (bool success, ) = payable(escrow.payee).call{value: newAmount}("");
+        require(success, "Transfer failed");
+        
+        // Deduct gas cost from escrow balance
+        // if (gasCost < amount) {
+        //     escrowBalances[escrowId] = 0;
+        //     escrow.isPaid = true;
+        //     // Return excess funds to payer
+        //     payable(escrow.payer).transfer(gasCost);
+        // } else {
+        //     // If gas cost exceeds escrow amount, set balance to 0
+        //     escrowBalances[escrowId] = 0;
+        //     escrow.isPaid = true;
+        // }
+        
+        emit EscrowReleased(escrowId, escrow.payee, amount - gasCost);
     }
 
     // Function to return ETH from escrow to the payer
     function returnFunds(uint256 escrowId) external {
         EscrowTransaction storage escrow = escrows[escrowId];
         
-        require(msg.sender == appWallet, "Only app wallet can return funds");
+        require(msg.sender == escrow.payer, "Only app wallet can return funds");
         require(!escrow.isPaid, "Funds already released");
         
         uint256 amount = escrowBalances[escrowId];
@@ -87,6 +107,13 @@ contract Escrow {
         return (escrow.payer, escrow.payee, escrowBalances[escrowId], escrow.isPaid);
     }
 
+    // Add this function to the Escrow contract
+    function getLatestEscrowId() public view returns (uint256) {
+    return escrowCount;
+}
+
     // Function to allow the contract to receive ETH
     receive() external payable {}
 }
+
+
