@@ -68,16 +68,16 @@ contract Escrow {
         require(success, "Transfer failed");
         
         // Deduct gas cost from escrow balance
-        if (gasCost < amount) {
-            escrowBalances[escrowId] = 0;
-            escrow.isPaid = true;
-            // Return excess funds to payer
-            payable(escrow.payer).transfer(gasCost);
-        } else {
-            // If gas cost exceeds escrow amount, set balance to 0
-            escrowBalances[escrowId] = 0;
-            escrow.isPaid = true;
-        }
+        // if (gasCost < amount) {
+        //     escrowBalances[escrowId] = 0;
+        //     escrow.isPaid = true;
+        //     // Return excess funds to payer
+        //     payable(escrow.payer).transfer(gasCost);
+        // } else {
+        //     // If gas cost exceeds escrow amount, set balance to 0
+        //     escrowBalances[escrowId] = 0;
+        //     escrow.isPaid = true;
+        // }
         
         emit EscrowReleased(escrowId, escrow.payee, amount - gasCost);
     }

@@ -112,7 +112,7 @@ const escrowContractFunction = async () => {
 
       console.log("latestId", latestId);
       setLatestEscrowId(Number(latestId) - 1);
-      console.log("latestId", Number(latestId) - 1);
+      console.log("latestEscrowId", latestEscrowId);
     } catch (error) {
       console.error("Failed to initialize the contract:", error);
       toast({
@@ -196,7 +196,9 @@ const escrowContractFunction = async () => {
         throw new Error("This escrow has already been paid");
       }
 
-      const tx = await contract.releaseEscrow(0);
+      const latestEscrowId = 1; // Make sure this is the correct ID
+      console.log("Releasing escrow with ID:", latestEscrowId);
+      const tx = await contract.releaseEscrow(latestEscrowId);
       console.log("Releasing escrow...");
       await tx.wait();
       console.log("Escrow released successfully");
