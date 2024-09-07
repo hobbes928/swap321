@@ -56,13 +56,21 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
       // Optionally, show an error toast here
     }
   };
-
+  const [confirming, setConfirming] = useState(false);
   const startEscrow = async (
     contract: ethers.Contract,
     buyerAddress: string
   ) => {
     try {
       // Convert the amount to wei
+      setConfirming(true);
+      toast({
+        title: "Confirm & Deposit",
+        description: "Confirming & Depositting",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
       const amountInWei = ethers.parseEther(orderDetails?.amount || "0");
 
       const tx = await contract.startEscrow(
@@ -74,18 +82,31 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
         }
       );
 
-      let escrow_id = await tx.wait();
+      await tx.wait();
+      toast({
+        title: "Confirm & Deposit",
+        description: "Confirmed & Deposited",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      const escrow_id = await contract.getEscrowIdByOrderId(orderDetails?._id);
       console.log("escrow_id:", escrow_id);
-      setConfirmed(true);
-      if (escrow_id) {
-        handleUpdatingOrder(escrow_id);
-        return;
-      }
-      escrow_id = await contract.getEscrowIdByOrderId(orderDetails?._id);
-      handleUpdatingOrder(escrow_id);
+
+      handleUpdatingOrder(Number(escrow_id));
       console.log("Escrow started successfully");
+      toast({
+        title: "Confirm & Deposit",
+        description: "Escrow started successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (error) {
       console.error("Failed to start escrow:", error);
+    } finally {
+      setConfirming(false);
     }
   };
 
