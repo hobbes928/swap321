@@ -15,6 +15,12 @@ export default async function handler(
         const order = await Orders.findById(orderData?._id);
         return res.json({ order });
       }
+      if (orderData?.getMyOrders) {
+        const orders = await Orders.find({
+          seller_email: orderData?.seller_email,
+        });
+        return res.json({ orders });
+      }
       const newOrder = await Orders.create(orderData);
       return res.json({ newOrder });
     } catch (error) {
