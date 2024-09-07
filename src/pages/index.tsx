@@ -19,12 +19,14 @@ import OrderDetailsModal from "../components/Exchange/OrderBook";
 import { sliceAddress } from "@/utils/utlis";
 import LoadingAnimation from "@/components/shared/Loading";
 import OpenOrderModal from "@/components/Exchange/OrderForm";
+import { IOrder } from "../../lib/database/orders";
+import { fetchEthPrice } from "@/utils/fetchETHprice";
 
 const MotionBox = motion(Box);
 
 const LiveOrder: React.FC<{
   index: number;
-  order: any;
+  order: IOrder;
   onClick: () => void;
 }> = ({ index, order, onClick }) => {
   const time = new Date().toLocaleString();
@@ -34,6 +36,21 @@ const LiveOrder: React.FC<{
   useEffect(() => {
     controls.start({ opacity: 1, y: 0 });
   }, [controls]);
+
+  const [ethPrice, setEthPrice] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const [ethPriceResponse] = await Promise.all([fetchEthPrice()]);
+        setEthPrice(Number(ethPriceResponse));
+      } catch (error) {
+        console.error("Error fetching prices:", error);
+      }
+    };
+
+    fetchPrices();
+  }, []);
 
   return (
     <MotionBox
@@ -52,13 +69,16 @@ const LiveOrder: React.FC<{
       onClick={onClick}
     >
       <Flex justifyContent="space-between" alignItems="center">
+        <Text>{index + 1}</Text>
         <Text>{sliceAddress(order?.seller_address)}</Text>
         <Flex alignItems="center">
           {isCryptoToFiat ? (
             <>
               <FaEthereum color="#00FFFF" />
               <Text ml={2} mr={2}>
-                ETH ⇔ USD
+                {order?.amount} ETH ⇔ $
+                {((Number(order?.amount) || 0) * (ethPrice || 0)).toFixed(2)}{" "}
+                USD
               </Text>
               <FaDollarSign color="#00FF00" />
             </>
@@ -66,7 +86,9 @@ const LiveOrder: React.FC<{
             <>
               <FaDollarSign color="#00FF00" />
               <Text ml={2} mr={2}>
-                USD ⇔ ETH
+                ${order?.amount} USD ⇔{" "}
+                {((Number(order?.amount) || 0) * (ethPrice || 0)).toFixed(2)}{" "}
+                ETH
               </Text>
               <FaEthereum color="#00FFFF" />
             </>
