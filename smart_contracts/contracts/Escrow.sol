@@ -47,7 +47,7 @@ contract Escrow {
     // Function to release ETH from escrow to the payee
     function releaseEscrow(uint256 escrowId) external {
         EscrowTransaction storage escrow = escrows[escrowId];
-        require(msg.sender == escrow.payee, "Only app wallet can release funds");
+        require(msg.sender == escrow.payee, "Only payee can release funds");
 
         uint256 amount = escrowBalances[escrowId];
         require(amount > 0, "No funds in escrow");
@@ -86,7 +86,7 @@ contract Escrow {
     function returnFunds(uint256 escrowId) external {
         EscrowTransaction storage escrow = escrows[escrowId];
         
-        require(msg.sender == escrow.payer, "Only app wallet can return funds");
+        require(msg.sender == escrow.payee, "Only payee can return funds");
         require(!escrow.isPaid, "Funds already released");
         
         uint256 amount = escrowBalances[escrowId];
