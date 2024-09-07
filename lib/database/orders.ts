@@ -14,7 +14,7 @@ interface IOrder extends Document {
   buyer_address?: string; // Optional field
   blockchain_tx?: string; // Optional field
   PG_tx?: string; // Optional field
-  status: "pending" | "completed" | "failed";
+  status: "pending" | "completed" | "failed" | "in-progress";
   created_at: Date;
   updated_at: Date;
 }
@@ -71,7 +71,7 @@ const OrdersSchema = new Schema<IOrder>({
   },
   status: {
     type: String,
-    enum: ["pending", "completed", "failed"],
+    enum: ["pending", "completed", "failed", "in-progress"],
     default: "pending", // Default order status
   },
   created_at: {
