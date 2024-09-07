@@ -23,7 +23,9 @@ export default async function handler(
   } else if (req.method === "GET") {
     try {
       await connectMongoDB();
-      const orders = await Orders.find({ status: "pending" });
+      const orders = await Orders.find({
+        status: { $in: ["pending", "in-progress"] },
+      });
       return res.json({ orders });
     } catch (error) {
       console.log(error);

@@ -121,6 +121,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         <ModalBody>
           <VStack spacing={6} align="stretch">
             <HStack justify="space-between">
+              <Text>Order ID:</Text>
+              <Text>{order?._id}</Text>
+            </HStack>
+            <HStack justify="space-between">
               <Text>Order Type:</Text>
               <Flex alignItems="center">
                 {order?.currency === "ETH_TO_USD" ? (
