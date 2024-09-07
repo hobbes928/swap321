@@ -141,31 +141,34 @@ const escrowContractFunction = async () => {
         body: JSON.stringify({ transactionId }),
       });
 
-      if (!response.ok) throw new Error("Failed to verify transaction");
+      if (!response.ok) { 
+        await returnFunds(contract, 1);
+        throw new Error("Failed to verify transaction");
+      }
       const data = await response.json();
 
       setVerificationResult(data);
 
-      if (data.verified) {
+      if (!data.verified) {
         // If PayPal transaction is verified, call releaseEscrow
         console.log("data verified");
-        await releaseEscrow(contract);
+        await releaseEscrow(contract,1);
         
       }
+
     } catch (error) {
+      
       console.error("Error verifying PayPal transaction:", error);
       setVerificationResult({
         verified: false,
-        error: "Failed to verify transaction",
+        error: "Failed to verify transaction. Funds returned to seller",
+        
       });
     }
   };
 
-  const releaseEscrow = async (contract: ethers.Contract) => {
-    if (!contract) {
-      console.error("Escrow contract is not initialized");
-      return;
-    }
+  const releaseEscrow = async (contract: ethers.Contract, EscrowID: number) => {
+
 
     // if (latestEscrowId === null) {
     //   console.error("Latest escrow ID is not set");
@@ -180,7 +183,7 @@ const escrowContractFunction = async () => {
       console.log("userAddress", userAddress);  
 
       // Get the escrow details
-      const [payer, payee, amount, isPaid] = await contract.getEscrowDetails(0);
+      const [payer, payee, amount, isPaid] = await contract.getEscrowDetails(EscrowID);
       console.log("payer", payer);
       console.log("payee", payee);
       console.log("amount", amount);
@@ -196,9 +199,9 @@ const escrowContractFunction = async () => {
         throw new Error("This escrow has already been paid");
       }
 
-      const latestEscrowId = 1; // Make sure this is the correct ID
-      console.log("Releasing escrow with ID:", latestEscrowId);
-      const tx = await contract.releaseEscrow(latestEscrowId);
+      //const latestEscrowId = 1; // Make sure this is the correct ID
+      console.log("Releasing escrow with ID:", EscrowID);
+      const tx = await contract.releaseEscrow(EscrowID);
       console.log("Releasing escrow...");
       await tx.wait();
       console.log("Escrow released successfully");
@@ -218,6 +221,18 @@ const escrowContractFunction = async () => {
         duration: 5000,
         isClosable: true,
       });
+    }
+  };
+
+  const returnFunds = async (contract: ethers.Contract, EscrowID: number) => { 
+    try {
+      
+      
+      const tx = await contract.returnFunds(EscrowID);
+      await tx.wait();
+      console.log("Escrow refunded");
+    } catch (error) {
+      console.error("Failed to return escrow:", error);
     }
   };
 

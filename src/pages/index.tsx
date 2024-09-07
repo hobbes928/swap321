@@ -183,7 +183,7 @@ const HomePage: React.FC = () => {
           opacity={0.05}
           zIndex={-1}
         />
-        <Header />
+        {/* <Header /> */}
         <Container maxW="container.xl" centerContent py={8}>
           <VStack spacing={12} align="center" w="100%">
             <Image
