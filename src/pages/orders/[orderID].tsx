@@ -15,7 +15,7 @@ export default function OrderID() {
   const [isBuyer, setIsBuyer] = useState(true);
   const toast = useToast();
 
-  const fetchAllOrders = async () => {
+  const fetchOrderByID = async () => {
     setIsLoading(true);
     const data = {
       _id: router.query.orderID,
@@ -64,7 +64,7 @@ export default function OrderID() {
   };
 
   useEffect(() => {
-    fetchAllOrders();
+    fetchOrderByID();
   }, [orderID]);
   // if (!order) return null;
   return (

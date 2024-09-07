@@ -92,6 +92,7 @@ const OpenOrderModal: React.FC<OpenOrderModalProps> = ({
         seller_address: general.walletAddress,
         buyer_email: "",
         buyer_address: "",
+        escrow_id: 0,
         amount: amount,
         currency: orderType,
         blockchain_tx: "0x123456...",
