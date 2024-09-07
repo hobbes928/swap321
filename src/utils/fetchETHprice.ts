@@ -52,10 +52,8 @@ const aggregatorV3InterfaceABI = [
 ];
 
 // Connect to Ethereum Mainnet using a public provider
-const provider = ethers.getDefaultProvider("homestead", {
-  infura: process.env.NEXT_PUBLIC_INFURA_API_KEY, // Provide Infura API key
-  // You can add other provider options here if needed
-});
+const rpc_url = process.env.NEXT_PUBLIC_RPC_URL_MAINNET;
+const provider = new ethers.JsonRpcProvider(rpc_url);
 
 // Chainlink ETH/USD Price Feed Contract Address
 const ethUsdPriceFeedAddress = process.env
@@ -79,6 +77,7 @@ export async function fetchEthPrice() {
   // The price is typically returned with 8 decimal places, so divide by 10^8 to get the actual price
   const ethPrice = ethers.formatUnits(price, 8);
 
+  console.log("Current :", provider);
   console.log("Current ETH Price in USD:", ethPrice);
 
   return ethPrice;

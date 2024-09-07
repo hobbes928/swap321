@@ -6,6 +6,7 @@ interface IOrder extends Document {
   currency: string;
   rate: string;
   price: string;
+  escrow_id: number;
   received_amount: string;
   seller_email: string;
   seller_address: string;
@@ -34,6 +35,10 @@ const OrdersSchema = new Schema<IOrder>({
   },
   price: {
     type: String,
+    required: false, // The price of the asset at the time of the order
+  },
+  escrow_id: {
+    type: Number,
     required: false, // The price of the asset at the time of the order
   },
   received_amount: {
