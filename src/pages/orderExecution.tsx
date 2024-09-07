@@ -4,28 +4,11 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import Header from '../components/Layout/Header';
 import { useRouter } from 'next/router';
-import SellerOrderExecution from '../components/Exchange/SellerOrder';
-import BuyerOrderExecution from '../components/Exchange/BuyerOrder';
+import { OrderDetails, TransactionQueryParams, ChatMessage } from '../types/types';
 
 const MotionBox = motion(Box);
 
-interface OrderDetails {
-  type: 'ETH_TO_USD' | 'USD_TO_ETH';
-  amount: string;
-  price: string;
-  receiveAmount: string;
-  sellerInfo: {
-    name: string;
-    accountNumber: string;
-  };
-}
 
-interface TransactionQueryParams {
-  start_date: string;
-  end_date: string;
-  transaction_id?: string;
-  // Add other optional parameters as needed
-}
 
 async function listTransactions(accessToken: string, params: TransactionQueryParams) {
   const PAYPAL_API_BASE = 'https://api-m.sandbox.paypal.com'; // Use 'https://api-m.paypal.com' for production
@@ -63,7 +46,7 @@ async function listTransactions(accessToken: string, params: TransactionQueryPar
 
 const OrderExecutionPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [chatMessages, setChatMessages] = useState([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [transactionId, setTransactionId] = useState('');

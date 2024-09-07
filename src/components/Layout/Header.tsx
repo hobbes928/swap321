@@ -9,10 +9,12 @@ import { Web3Auth } from "@web3auth/modal";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { GeneralProps, useGeneralStore } from '@/hooks/useGeneral';
+import { User } from '@/types/user';
+ // Add this import
 
 const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const { isOpen: isOpenOrderOpen, onOpen: onOpenOrderOpen, onClose: onCloseOrderOpen } = useDisclosure();
   const { isOpen: isSignInOpen, onOpen: onOpenSignIn, onClose: onCloseSignIn } = useDisclosure();
   const router = useRouter();
@@ -59,7 +61,7 @@ const Header: React.FC = () => {
     }
   }, []);
 
-  const handleSignIn = (userData) => {
+  const handleSignIn = (userData: any) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
     handleGeneral({
