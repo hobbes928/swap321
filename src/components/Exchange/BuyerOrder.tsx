@@ -40,6 +40,8 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
   const [transactionId, setTransactionId] = useState("");
   const [verificationResult, setVerificationResult] = useState<any>(null);
 
+  const [escrowStarted, setEscrowStarted] = useState(false);
+
   const toast = useToast();
   console.log("orderDetails:", orderDetails);
 
@@ -196,6 +198,12 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
     handleUpdatingOrder();
   }, []);
 
+  useEffect(() => {
+    if (orderDetails) {
+      setEscrowStarted(orderDetails.escrow_id > 0);
+    }
+  }, [orderDetails]);
+
   const handleSendMessage = () => {
     if (inputMessage.trim()) {
       setChatMessages([
@@ -248,9 +256,19 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
                 borderRight="1px solid"
                 borderColor="gray.700"
               >
-                <VStack align="stretch" spacing={8}>
+                <VStack align="stretch" spacing={4}>
                   {/* Step 1: Order Info */}
                   <OrderInfoCard orderDetails={orderDetails} />
+
+                  {/* Escrow Status */}
+                  <Text
+                    fontWeight="bold"
+                    color={escrowStarted ? "green.500" : "red.500"}
+                  >
+                    {escrowStarted
+                      ? "Confirmed and Deposited"
+                      : "Awaiting Confirmation & Deposit"}
+                  </Text>
 
                   {/* Step 2: Verify PayPal Transaction */}
                   <Box>
@@ -265,37 +283,46 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
                         2
                       </Box>
                       <Text fontWeight="bold">
-                        Confirm the seller's payment details, send fiat over
-                        PayPal and enter PayPal Tx ID to verify payment
+                        {escrowStarted
+                          ? "Confirm the seller's payment details, send fiat over PayPal and enter PayPal Tx ID to verify payment"
+                          : "Waiting for seller to start escrow"}
                       </Text>
                     </HStack>
                     <Box bg="gray.800" p={4} borderRadius="md">
-                      <Text color="gray.400">
-                        Send to: {orderDetails?.seller_email}
-                      </Text>
-                      <Text color="gray.400">
-                        Send to: {orderDetails?.seller_address}
-                      </Text>
-                      <Input
-                        value={transactionId}
-                        onChange={(e) => setTransactionId(e.target.value)}
-                        placeholder="Enter PayPal Transaction ID"
-                        mb={4}
-                      />
-                      <Button
-                        onClick={() => verifyPayPalTransaction(transactionId)}
-                        colorScheme="purple"
-                        width="full"
-                      >
-                        Confirm
-                      </Button>
-                      {verificationResult && (
-                        <Box mt={4} p={4} bg="gray.700" borderRadius="md">
-                          <Text fontWeight="bold">Verification Result:</Text>
-                          <pre>
-                            {JSON.stringify(verificationResult, null, 2)}
-                          </pre>
-                        </Box>
+                      {escrowStarted ? (
+                        <>
+                          <Text color="gray.400">
+                            Send to: {orderDetails?.seller_email}
+                          </Text>
+                          <Text color="gray.400">
+                            Send to: {orderDetails?.seller_address}
+                          </Text>
+                          <Input
+                            value={transactionId}
+                            onChange={(e) => setTransactionId(e.target.value)}
+                            placeholder="Enter PayPal Transaction ID"
+                            mb={4}
+                          />
+                          <Button
+                            onClick={() => verifyPayPalTransaction(transactionId)}
+                            colorScheme="purple"
+                            width="full"
+                          >
+                            Confirm
+                          </Button>
+                          {verificationResult && (
+                            <Box mt={4} p={4} bg="gray.700" borderRadius="md">
+                              <Text fontWeight="bold">Verification Result:</Text>
+                              <pre>
+                                {JSON.stringify(verificationResult, null, 2)}
+                              </pre>
+                            </Box>
+                          )}
+                        </>
+                      ) : (
+                        <Text color="gray.400">
+                          Please wait for the seller to start the escrow before proceeding.
+                        </Text>
                       )}
                     </Box>
                   </Box>
