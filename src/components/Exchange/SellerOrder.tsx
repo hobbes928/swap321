@@ -1,7 +1,4 @@
-import { useState, useEffect } from "react";
-import { Web3Auth } from "@web3auth/modal";
-import { CHAIN_NAMESPACES, IProvider } from "@web3auth/base";
-import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+import { useState } from "react";
 import {
   Box,
   Flex,
@@ -19,9 +16,9 @@ import Head from "next/head";
 import { IOrder } from "../../../lib/database/orders";
 import OrderInfoCard from "./OrderInfoCard";
 import OpenOrderModal from "./OrderForm";
-import { ethers } from 'ethers';
-import EscrowABI from '../../../smart_contracts/contracts/artifacts/Escrow.json';
-import { useGeneralStore, GeneralProps } from "@/hooks/useGeneral";
+import { ethers } from "ethers";
+import { escrowContractFunction } from "@/utils/utlis";
+import { GeneralProps, useGeneralStore } from "@/hooks/useGeneral";
 
 const MotionBox = motion(Box);
 interface SellerOrderExecutionProps {
@@ -39,67 +36,21 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
     }[]
   >([]);
   const [inputMessage, setInputMessage] = useState("");
-  const [transactionId, setTransactionId] = useState("");
-  const [verificationResult, setVerificationResult] = useState<any>(null);
-  const [escrowContract, setEscrowContract] = useState<ethers.Contract | null>(null);
-  const [latestEscrowId, setLatestEscrowId] = useState<number | null>(null);
-  const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
-  const [isWeb3AuthReady, setIsWeb3AuthReady] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const toast = useToast();
-  const web3AuthProvider = useGeneralStore(
+  const web3authProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
   );
-
-  const escrowContractFunction = async () => {
-
-    try {
-      if (!web3AuthProvider) {
-        throw new Error("Failed to connect to Web3Auth");
-      }
-      console.log("before provider");
-      const provider = new ethers.BrowserProvider(web3AuthProvider.provider);
-      console.log("after provider");
-      const signer = await provider.getSigner();
-      console.log("signer", signer);
-      const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS!, EscrowABI, signer);
-      console.log("contract", contract);
-    
-      setEscrowContract(contract);
-      return contract;
-    } catch (error) {
-      console.error("Failed to initialize the contract:", error);
-  
-  
-    }}
-  
-  const initializeContract = async () => {
-  
-    try {
-    
-      // Get the latest escrow ID
-      const contract = await escrowContractFunction();
-      if (!contract) {
-        console.log("contract not initialized");
-        return;
-      }
-  
-    } catch (error) {
-      console.error("Failed to initialize the contract:", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to the Escrow contract. Please check your Web3Auth connection.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+  const startTransaction = async () => {
+    if (!web3authProvider) {
+      throw new Error("Failed to connect to Web3Auth");
     }
-  };
+    const contract = await escrowContractFunction(web3authProvider.provider);
 
-  const startTransaction = async (buyerAddress: string) => {
-    const contract = await escrowContractFunction();
-    if (contract) {
+    if (contract && orderDetails) {
+      const buyerAddress = orderDetails.buyer_address as string;
+      setBuyerAddress(buyerAddress);
       await startEscrow(contract, buyerAddress);
     } else {
       console.error("Failed to initialize contract");
@@ -107,14 +58,24 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
     }
   };
 
-  const startEscrow = async (contract: ethers.Contract, buyerAddress: string) => {
+  const startEscrow = async (
+    contract: ethers.Contract,
+    buyerAddress: string
+  ) => {
     try {
       // Convert the amount to wei
-      const amountInWei = ethers.parseEther(orderDetails?.amount.toString() || "0");
-      
-      const tx = await contract.startEscrow(buyerAddress, amountInWei, {
-        value: amountInWei
-      });
+      const amountInWei = ethers.parseEther(
+        orderDetails?.amount.toString() || "0"
+      );
+
+      const tx = await contract.startEscrow(
+        buyerAddress,
+        amountInWei,
+        orderDetails?._id || 0,
+        {
+          value: amountInWei,
+        }
+      );
       await tx.wait();
       console.log("Escrow started successfully");
     } catch (error) {
@@ -193,19 +154,23 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                   <Box>
                     <OrderInfoCard orderDetails={orderDetails} />
                     <Box mt={4}>
-                      <Input
+                      {/* <Input
                         value={buyerAddress}
                         onChange={(e) => setBuyerAddress(e.target.value)}
                         placeholder="Enter Buyer Wallet Address"
                         mb={4}
-                      />
-                      <Button
-                        onClick={() => startTransaction(buyerAddress)}
-                        colorScheme="purple"
-                        width="full"
-                      >
-                        Confirm & Deposit
-                      </Button>
+                      /> */}
+                      {buyerAddress ? (
+                        <Button
+                          onClick={() => startTransaction()}
+                          colorScheme="purple"
+                          width="full"
+                        >
+                          Confirm & Deposit
+                        </Button>
+                      ) : (
+                        <p>Wait for buyer to confirm the order</p>
+                      )}
                     </Box>
                   </Box>
 
@@ -221,10 +186,14 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                       >
                         2
                       </Box>
-                      <Text fontWeight="bold">Awaiting Seller Payment Verification</Text>
+                      <Text fontWeight="bold">
+                        Awaiting Seller Payment Verification
+                      </Text>
                     </HStack>
                     <Box bg="gray.800" p={4} borderRadius="md">
-                      <Text color="gray.400">Payment Verified Escrow Released</Text>
+                      <Text color="gray.400">
+                        Payment Verified Escrow Released
+                      </Text>
                     </Box>
                   </Box>
 
