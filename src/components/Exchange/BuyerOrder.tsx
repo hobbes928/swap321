@@ -92,10 +92,10 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
     }
   };
 
-  const releaseEscrow = async (contract: ethers.Contract, orderID: number) => {
+  const releaseEscrow = async (contract: ethers.Contract, escrow_id: number) => {
     try {
-      console.log("Releasing escrow with ID:", orderID);
-      const tx = await contract.releaseEscrow(orderID);
+      console.log("Releasing escrow with ID:", escrow_id);
+      const tx = await contract.releaseEscrow(escrow_id);
       console.log("Releasing escrow...");
       await tx.wait();
       console.log("Escrow released successfully");
@@ -118,9 +118,9 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
     }
   };
 
-  const returnFunds = async (contract: ethers.Contract, orderID: number) => {
+  const returnFunds = async (contract: ethers.Contract, escrow_id: number) => {
     try {
-      const tx = await contract.returnFunds(orderID);
+      const tx = await contract.returnFunds(escrow_id);
       await tx.wait();
       console.log("Escrow refunded");
       toast({
@@ -263,8 +263,11 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
                       </Text>
                     </HStack>
                     <Box bg="gray.800" p={4} borderRadius="md">
-                      <Text color="gray.400">{orderDetails?.seller_email}</Text>
                       <Text color="gray.400">
+                        Send to: {orderDetails?.seller_email}
+                      </Text>
+                      <Text color="gray.400">
+                        Send to: {" "}
                         {orderDetails?.seller_address}
                       </Text>
                       <Input

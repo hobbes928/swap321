@@ -8,14 +8,14 @@ contract Escrow is ReentrancyGuard {
         address payer;
         address payee;
         uint256 amount;
-        uint256 order_id;
+        string order_id;
         bool isPaid;
         bool isFailed; // Track if the escrow has failed
     }
 
     mapping(uint256 => EscrowTransaction) public escrows;
     mapping(uint256 => uint256) public escrowBalances;
-    mapping(uint256 => uint256) public orderIdToEscrowId; // Mapping from order_id to escrowId
+    mapping(string => uint256) public orderIdToEscrowId; // Mapping from order_id (string) to escrowId
     uint256 public escrowCount = 0;
 
     event EscrowStarted(
@@ -39,14 +39,14 @@ contract Escrow is ReentrancyGuard {
     function startEscrow(
         address _payee,
         uint256 _amount,
-        uint256 _order_id
+        string memory _order_id
     ) external payable returns (uint256 _escrowId) {
         require(_amount > 0, "Escrow amount should be greater than zero");
         require(
             msg.value == _amount,
             "Sent value does not match the specified amount"
         );
-        require(_order_id != 0, "Order ID cannot be zero");
+        require(bytes(_order_id).length > 0, "Order ID cannot be empty");
 
         escrowCount++;
 
@@ -112,7 +112,11 @@ contract Escrow is ReentrancyGuard {
     // Function to get escrow details
     function getEscrowDetails(
         uint256 escrowId
-    ) external view returns (address, address, uint256, uint256, bool, bool) {
+    )
+        external
+        view
+        returns (address, address, uint256, string memory, bool, bool)
+    {
         EscrowTransaction storage escrow = escrows[escrowId];
         return (
             escrow.payer,
@@ -126,7 +130,7 @@ contract Escrow is ReentrancyGuard {
 
     // Function to get escrowId based on order_id
     function getEscrowIdByOrderId(
-        uint256 order_id
+        string memory order_id
     ) external view returns (uint256) {
         uint256 escrowId = orderIdToEscrowId[order_id];
         require(escrowId != 0, "Escrow not found for the given order ID");

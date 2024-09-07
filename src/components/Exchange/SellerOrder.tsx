@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Flex,
@@ -37,7 +37,7 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   >([]);
   const [inputMessage, setInputMessage] = useState("");
   const { isOpen, onOpen, onClose } = useDisclosure();
-
+  const [confirmed, setConfirmed] = useState(false);
   const toast = useToast();
   const web3authProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
@@ -50,7 +50,6 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
 
     if (contract && orderDetails) {
       const buyerAddress = orderDetails.buyer_address as string;
-      setBuyerAddress(buyerAddress);
       await startEscrow(contract, buyerAddress);
     } else {
       console.error("Failed to initialize contract");
@@ -64,22 +63,64 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   ) => {
     try {
       // Convert the amount to wei
-      const amountInWei = ethers.parseEther(
-        orderDetails?.amount.toString() || "0"
-      );
+      const amountInWei = ethers.parseEther(orderDetails?.amount || "0");
 
       const tx = await contract.startEscrow(
         buyerAddress,
         amountInWei,
-        orderDetails?._id || 0,
+        orderDetails?._id || "0",
         {
           value: amountInWei,
         }
       );
-      await tx.wait();
+
+      let escrow_id = await tx.wait();
+      console.log("escrow_id:", escrow_id);
+      setConfirmed(true);
+      if (escrow_id) {
+        handleUpdatingOrder(escrow_id);
+        return;
+      }
+      escrow_id = await contract.getEscrowIdByOrderId(orderDetails?._id);
+      handleUpdatingOrder(escrow_id);
       console.log("Escrow started successfully");
     } catch (error) {
       console.error("Failed to start escrow:", error);
+    }
+  };
+
+  const handleUpdatingOrder = async (escrow_id = 0) => {
+    if (!orderDetails) return;
+
+    try {
+      const data = {
+        ...orderDetails,
+        escrow_id: escrow_id,
+        updated_at: Date.now(),
+      };
+
+      const response = await fetch("/api/Orders", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response && response.ok) {
+        console.log("Order updated successfully!");
+      } else {
+        console.error("Failed to update order");
+      }
+    } catch (error) {
+      console.error("Error updating order:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again later.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -106,10 +147,17 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
       });
     }
   };
+  useEffect(() => {
+    if (orderDetails) {
+      setBuyerAddress(orderDetails.buyer_address as string);
+      console.log("orderDetails.escrow_id > 0:", orderDetails.escrow_id > 0);
+
+      setConfirmed(orderDetails.escrow_id > 0);
+    }
+  }, [orderDetails]);
+  const [buyerAddress, setBuyerAddress] = useState("");
 
   if (!orderDetails) return null;
-
-  const [buyerAddress, setBuyerAddress] = useState("");
 
   return (
     <>
@@ -165,6 +213,7 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                           onClick={() => startTransaction()}
                           colorScheme="purple"
                           width="full"
+                          disabled={confirmed}
                         >
                           Confirm & Deposit
                         </Button>
