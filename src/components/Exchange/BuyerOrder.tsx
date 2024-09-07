@@ -14,15 +14,11 @@ import { motion } from "framer-motion";
 import Head from "next/head";
 import { IOrder } from "../../../lib/database/orders";
 import OrderInfoCard from "./OrderInfoCard";
-
-import EscrowABI from '../../../smart_contracts/contracts/artifacts/Escrow.json';
-import ChatBox from './ChatBox';
-import { useXmtp } from '@/hooks/useXmtp';
-
+import ChatBox from "./ChatBox";
+import { useXmtp } from "@/hooks/useXmtp";
 import { ethers } from "ethers";
 import { escrowContractFunction } from "@/utils/utlis";
 import { GeneralProps, useGeneralStore } from "@/hooks/useGeneral";
-
 
 const MotionBox = motion(Box);
 interface BuyerOrderExecutionProps {
@@ -47,97 +43,18 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
   const toast = useToast();
   console.log("orderDetails:", orderDetails);
 
-  const web3authProvider = useGeneralStore(
+  const web3AuthProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
   );
 
-
   const { isInitialized } = useXmtp();
-
-/*
-  const initializeWeb3Auth = async () => {
-    try {
-      const chainConfig = {
-        chainNamespace: CHAIN_NAMESPACES.EIP155,
-        chainId: "0xaa36a7", // Sepolia testnet
-        rpcTarget: "https://sepolia.infura.io/v3/2c95e7227a524c75b007db514c409415", // Use your own Infura ID or another RPC provider
-        displayName: "Sepolia Testnet",
-        blockExplorerUrl: "https://sepolia.etherscan.io",
-        ticker: "ETH",
-        tickerName: "Ethereum",
-      };
-
-      const web3auth = new Web3Auth({
-        clientId: process.env.NEXT_PUBLIC_CLIENT_ID!, // Make sure this is set correctly
-        web3AuthNetwork: "testnet",
-        chainConfig,
-        privateKeyProvider: new EthereumPrivateKeyProvider({ config: { chainConfig } }),
-      });
-
-      await web3auth.initModal();
-      setWeb3auth(web3auth);
-    } catch (error) {
-      console.error("Failed to initialize Web3Auth:", error);
-    }
-  };
-*/
-
-const escrowContractFunction = async () => {
-
-  try {
-    if (!web3AuthProvider) {
-      throw new Error("Failed to connect to Web3Auth");
-    }
-    console.log("before provider");
-    const provider = new ethers.BrowserProvider(web3AuthProvider.provider);
-    console.log("after provider");
-    const signer = await provider.getSigner();
-    console.log("signer", signer);
-    const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS!, EscrowABI, signer);
-    console.log("contract", contract);
-  
-    setEscrowContract(contract);
-    return contract;
-  } catch (error) {
-    console.error("Failed to initialize the contract:", error);
-
-
-  }}
-
-  const initializeContract = async () => {
-
-    try {
-  
-      // Get the latest escrow ID
-      const contract = await escrowContractFunction();
-      if (!contract) {
-        console.log("contract not initialized");
-        return;
-      }
-      const latestId = await contract.getLatestEscrowId();
-
-      console.log("latestId", latestId);
-      setLatestEscrowId(Number(latestId) - 1);
-      console.log("latestEscrowId", latestEscrowId);
-    } catch (error) {
-      console.error("Failed to initialize the contract:", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to the Escrow contract. Please check your Web3Auth connection.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
 
   const verifyPayPalTransaction = async (transactionId: string) => {
     try {
-      if (!web3authProvider) {
+      if (!web3AuthProvider) {
         throw new Error("Failed to connect to Web3Auth");
       }
-      const contract = await escrowContractFunction(web3authProvider.provider);
+      const contract = await escrowContractFunction(web3AuthProvider.provider);
       if (!contract || !orderDetails) {
         console.log("contract/order not initialized/created");
         return;
@@ -178,7 +95,6 @@ const escrowContractFunction = async () => {
       });
     }
   };
-
 
   const releaseEscrow = async (
     contract: ethers.Contract,
@@ -414,8 +330,13 @@ const escrowContractFunction = async () => {
                 <Text fontSize="xl" fontWeight="bold">
                   Chat with Seller
                 </Text>
-                {isInitialized && orderDetails?.seller_address && orderDetails?._id ? (
-                  <ChatBox recipientAddress={orderDetails.seller_address} orderID={orderDetails._id.toString()} />
+                {isInitialized &&
+                orderDetails?.seller_address &&
+                orderDetails?._id ? (
+                  <ChatBox
+                    recipientAddress={orderDetails.seller_address}
+                    orderID={orderDetails._id.toString()}
+                  />
                 ) : (
                   <Text>Initializing XMTP client...</Text>
                 )}

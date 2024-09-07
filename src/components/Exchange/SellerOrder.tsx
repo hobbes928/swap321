@@ -16,14 +16,12 @@ import Head from "next/head";
 import { IOrder } from "../../../lib/database/orders";
 import OrderInfoCard from "./OrderInfoCard";
 import OpenOrderModal from "./OrderForm";
-import { ethers } from 'ethers';
-import EscrowABI from '../../../smart_contracts/contracts/artifacts/Escrow.json';
+import { ethers } from "ethers";
 import { useGeneralStore, GeneralProps } from "@/hooks/useGeneral";
-import ChatBox from './ChatBox';
-import { useXmtp } from '@/hooks/useXmtp';
+import ChatBox from "./ChatBox";
+import { useXmtp } from "@/hooks/useXmtp";
 
 import { escrowContractFunction } from "@/utils/utlis";
-
 
 const MotionBox = motion(Box);
 interface SellerOrderExecutionProps {
@@ -43,15 +41,8 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   >([]);
   const [inputMessage, setInputMessage] = useState("");
 
-  const [transactionId, setTransactionId] = useState("");
-  const [verificationResult, setVerificationResult] = useState<any>(null);
-  const [escrowContract, setEscrowContract] = useState<ethers.Contract | null>(null);
-  const [latestEscrowId, setLatestEscrowId] = useState<number | null>(null);
-  const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
-  const [isWeb3AuthReady, setIsWeb3AuthReady] = useState(false);
   const { client, isInitialized } = useXmtp();
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const [confirmed, setConfirmed] = useState(false);
 
   const toast = useToast();
@@ -316,10 +307,12 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                 <Text fontSize="xl" fontWeight="bold">
                   Chat with Buyer
                 </Text>
-                {isInitialized && orderDetails?.buyer_address && orderDetails?._id ? (
-                  <ChatBox 
-                    recipientAddress={orderDetails.buyer_address} 
-                    orderID={orderDetails._id.toString()} 
+                {isInitialized &&
+                orderDetails?.buyer_address &&
+                orderDetails?._id ? (
+                  <ChatBox
+                    recipientAddress={orderDetails.buyer_address}
+                    orderID={orderDetails._id.toString()}
                   />
                 ) : (
                   <Text>Initializing XMTP client...</Text>
