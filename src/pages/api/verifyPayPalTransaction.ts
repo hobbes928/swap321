@@ -62,7 +62,7 @@ export default async function handler(
       const data = await verifyResponse.json();
 
       res.status(200).json({ verified: true, ...data });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during transaction verification:", error);
       throw new Error(`Failed to verify transaction: ${error.message}`);
     }
