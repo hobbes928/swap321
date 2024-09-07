@@ -92,7 +92,10 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
     }
   };
 
-  const releaseEscrow = async (contract: ethers.Contract, escrow_id: number) => {
+  const releaseEscrow = async (
+    contract: ethers.Contract,
+    escrow_id: number
+  ) => {
     try {
       console.log("Releasing escrow with ID:", escrow_id);
       const tx = await contract.releaseEscrow(escrow_id);
@@ -142,7 +145,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
     }
   };
 
-  const handleUpdatingOrder = async (status = "pending") => {
+  const handleUpdatingOrder = async (status = "in-progress") => {
     const storedUser = localStorage.getItem("user");
 
     if (!orderDetails || !storedUser) return;
@@ -267,8 +270,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
                         Send to: {orderDetails?.seller_email}
                       </Text>
                       <Text color="gray.400">
-                        Send to: {" "}
-                        {orderDetails?.seller_address}
+                        Send to: {orderDetails?.seller_address}
                       </Text>
                       <Input
                         value={transactionId}
