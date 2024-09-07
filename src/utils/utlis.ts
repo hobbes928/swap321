@@ -1,3 +1,6 @@
+import { ethers } from "ethers";
+import EscrowABI from "@/contracts/artifacts/Escrow.json";
+
 /**
  * Slices an Ethereum address to a shorter format.
  * @param {string} address - The full Ethereum address.
@@ -15,3 +18,22 @@ export function sliceAddress(address: string): string {
 
   return `${start}...${end}`;
 }
+
+export const escrowContractFunction = async (web3AuthProvider: any) => {
+  try {
+    console.log("before provider");
+    const provider = new ethers.BrowserProvider(web3AuthProvider.provider);
+    console.log("after provider");
+    const signer = await provider.getSigner();
+    console.log("signer", signer);
+    const contract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS!,
+      EscrowABI,
+      signer
+    );
+    console.log("contract", contract);
+    return contract;
+  } catch (error) {
+    console.error("Failed to initialize the contract:", error);
+  }
+};
