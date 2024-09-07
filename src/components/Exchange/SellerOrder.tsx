@@ -44,6 +44,7 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   const { client, isInitialized } = useXmtp();
 
   const [confirmed, setConfirmed] = useState(false);
+  const [escrowStarted, setEscrowStarted] = useState(false);
 
   const toast = useToast();
   const web3authProvider = useGeneralStore(
@@ -97,6 +98,8 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
         duration: 3000,
         isClosable: true,
       });
+
+      setEscrowStarted(true);
 
       const escrow_id = await contract.getEscrowIdByOrderId(orderDetails?._id);
       console.log("escrow_id:", escrow_id);
@@ -178,9 +181,8 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   useEffect(() => {
     if (orderDetails) {
       setBuyerAddress(orderDetails.buyer_address as string);
-      console.log("orderDetails.escrow_id > 0:", orderDetails.escrow_id > 0);
-
       setConfirmed(orderDetails.escrow_id > 0);
+      setEscrowStarted(orderDetails.escrow_id > 0);
     }
   }, [orderDetails]);
   const [buyerAddress, setBuyerAddress] = useState("");
@@ -237,14 +239,20 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                         mb={4}
                       /> */}
                       {buyerAddress ? (
-                        <Button
-                          onClick={() => startTransaction()}
-                          colorScheme="purple"
-                          width="full"
-                          disabled={confirmed}
-                        >
-                          Confirm & Deposit
-                        </Button>
+                        escrowStarted || confirmed ? (
+                          <Text fontWeight="bold" color="green.500">
+                            Confirmed and Deposited
+                          </Text>
+                        ) : (
+                          <Button
+                            onClick={() => startTransaction()}
+                            colorScheme="purple"
+                            width="full"
+                            disabled={confirming}
+                          >
+                            {confirming ? "Processing..." : "Confirm & Deposit"}
+                          </Button>
+                        )
                       ) : (
                         <p>Wait for buyer to confirm the order</p>
                       )}
