@@ -45,6 +45,8 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
 
   const [confirmed, setConfirmed] = useState(false);
   const [escrowStarted, setEscrowStarted] = useState(false);
+  const [escrowReleased, setEscrowReleased] = useState(false);
+  const [escrowReturned, setEscrowReturned] = useState(false);
 
   const toast = useToast();
   const web3authProvider = useGeneralStore(
@@ -183,11 +185,22 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
       setBuyerAddress(orderDetails.buyer_address as string);
       setConfirmed(orderDetails.escrow_id > 0);
       setEscrowStarted(orderDetails.escrow_id > 0);
+      if (orderDetails.status === "completed") {
+        setEscrowReleased(true);
+      } else if (orderDetails.status === "failed") {
+        setEscrowReturned(true);
+      }
     }
   }, [orderDetails]);
   const [buyerAddress, setBuyerAddress] = useState("");
 
   if (!orderDetails) return null;
+
+  useEffect(() => {
+    if (orderDetails && orderDetails.status === "completed") {
+      setEscrowReleased(true);
+    }
+  }, [orderDetails]);
 
   return (
     <>
@@ -232,12 +245,6 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                   <Box>
                     <OrderInfoCard orderDetails={orderDetails} />
                     <Box mt={4}>
-                      {/* <Input
-                        value={buyerAddress}
-                        onChange={(e) => setBuyerAddress(e.target.value)}
-                        placeholder="Enter Buyer Wallet Address"
-                        mb={4}
-                      /> */}
                       {buyerAddress ? (
                         escrowStarted || confirmed ? (
                           <Text fontWeight="bold" color="green.500">
@@ -272,42 +279,23 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                         2
                       </Box>
                       <Text fontWeight="bold">
-                        Awaiting Seller Payment Verification
+                        {escrowReleased
+                          ? "Transaction Successful: Escrow Released"
+                          : escrowReturned
+                          ? "Transaction Failed: Escrow Funds Returned"
+                          : "Awaiting Seller Payment Verification"}
                       </Text>
                     </HStack>
-                    <Box bg="gray.800" p={4} borderRadius="md">
-                      <Text color="gray.400">
-                        Payment Verified Escrow Released
+                    {escrowReleased && (
+                      <Text fontWeight="bold" color="green.500">
+                        Transaction Successful: Escrow Released
                       </Text>
-                    </Box>
-                  </Box>
-
-                  {/* Step 3: Confirm Payment Received */}
-                  <Box>
-                    <HStack mb={2}>
-                      <Box
-                        bg="yellow.400"
-                        color="black"
-                        px={2}
-                        py={1}
-                        borderRadius="full"
-                      >
-                        3
-                      </Box>
-                      <Text fontWeight="bold">Confirm Payment received</Text>
-                    </HStack>
-                    <Text color="gray.400" mb={4}>
-                      After confirming that payment has been received, click the
-                      'Payment Received' button below.
-                    </Text>
-                    <HStack>
-                      <Button colorScheme="purple" onClick={handleCompleteStep}>
-                        Payment Received
-                      </Button>
-                      {/* <Button variant="outline" colorScheme="teal">
-                        Transaction issue, I want to appeal
-                      </Button> */}
-                    </HStack>
+                    )}
+                    {escrowReturned && (
+                      <Text fontWeight="bold" color="red.500">
+                        Transaction Failed: Escrow Funds Returned
+                      </Text>
+                    )}
                   </Box>
                 </VStack>
               </Box>

@@ -41,6 +41,8 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
   const [verificationResult, setVerificationResult] = useState<any>(null);
 
   const [escrowStarted, setEscrowStarted] = useState(false);
+  const [escrowReleased, setEscrowReleased] = useState(false);
+  const [escrowReturned, setEscrowReturned] = useState(false);
 
   const toast = useToast();
   console.log("orderDetails:", orderDetails);
@@ -108,6 +110,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       console.log("Releasing escrow...");
       await tx.wait();
       console.log("Escrow released successfully");
+      setEscrowReleased(true);
       toast({
         title: "Escrow Released",
         description: "The funds have been released to the payee.",
@@ -132,6 +135,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       const tx = await contract.returnFunds(escrow_id);
       await tx.wait();
       console.log("Escrow refunded");
+      setEscrowReturned(true);
       toast({
         title: "Escrow Refunded",
         description: "The funds have been refunded to the payee.",
@@ -143,7 +147,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       console.error("Failed to return escrow:", error);
       toast({
         title: "Error",
-        description: `Failed to release escrow: ${error?.message}`,
+        description: `Failed to return escrow: ${error?.message}`,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -288,68 +292,45 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
                           : "Waiting for seller to start escrow"}
                       </Text>
                     </HStack>
-                    <Box bg="gray.800" p={4} borderRadius="md">
-                      {escrowStarted ? (
-                        <>
-                          <Text color="gray.400">
-                            Send to: {orderDetails?.seller_email}
-                          </Text>
-                          <Text color="gray.400">
-                            Send to: {orderDetails?.seller_address}
-                          </Text>
-                          <Input
-                            value={transactionId}
-                            onChange={(e) => setTransactionId(e.target.value)}
-                            placeholder="Enter PayPal Transaction ID"
-                            mb={4}
-                          />
-                          <Button
-                            onClick={() => verifyPayPalTransaction(transactionId)}
-                            colorScheme="purple"
-                            width="full"
-                          >
-                            Confirm
-                          </Button>
-                          {verificationResult && (
-                            <Box mt={4} p={4} bg="gray.700" borderRadius="md">
-                              <Text fontWeight="bold">Verification Result:</Text>
-                              <pre>
-                                {JSON.stringify(verificationResult, null, 2)}
-                              </pre>
-                            </Box>
-                          )}
-                        </>
-                      ) : (
+                    {escrowReleased ? (
+                      <Text fontWeight="bold" color="green.500">
+                        Transaction Successful: Escrow Released
+                      </Text>
+                    ) : escrowReturned ? (
+                      <Text fontWeight="bold" color="red.500">
+                        Transaction Failed: Escrow funds returned
+                      </Text>
+                    ) : escrowStarted && (
+                      <Box bg="gray.800" p={4} borderRadius="md">
                         <Text color="gray.400">
-                          Please wait for the seller to start the escrow before proceeding.
+                          Send to: {orderDetails?.seller_email}
                         </Text>
-                      )}
-                    </Box>
-                  </Box>
-
-                  {/* Step 3: Confirm Payment Received */}
-                  <Box>
-                    <HStack mb={2}>
-                      <Box
-                        bg="yellow.400"
-                        color="black"
-                        px={2}
-                        py={1}
-                        borderRadius="full"
-                      >
-                        3
+                        <Text color="gray.400">
+                          Send to: {orderDetails?.seller_address}
+                        </Text>
+                        <Input
+                          value={transactionId}
+                          onChange={(e) => setTransactionId(e.target.value)}
+                          placeholder="Enter PayPal Transaction ID"
+                          mb={4}
+                        />
+                        <Button
+                          onClick={() => verifyPayPalTransaction(transactionId)}
+                          colorScheme="purple"
+                          width="full"
+                        >
+                          Confirm
+                        </Button>
+                        {verificationResult && (
+                          <Box mt={4} p={4} bg="gray.700" borderRadius="md">
+                            <Text fontWeight="bold">Verification Result:</Text>
+                            <pre>
+                              {JSON.stringify(verificationResult, null, 2)}
+                            </pre>
+                          </Box>
+                        )}
                       </Box>
-                      <Text fontWeight="bold">Confirm Payment received</Text>
-                    </HStack>
-                    <Text color="gray.400" mb={4}>
-                      After confirming that payment has been received, click the
-                      'Payment Received' button below.
-                    </Text>
-                    <HStack>
-                      <Button colorScheme="purple" onClick={handleCompleteStep}>
-                        Payment Received
-                      </Button>
-                    </HStack>
+                    )}
                   </Box>
                 </VStack>
               </Box>
