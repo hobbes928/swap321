@@ -22,6 +22,8 @@ import OpenOrderModal from "./OrderForm";
 import { ethers } from 'ethers';
 import EscrowABI from '../../../smart_contracts/contracts/artifacts/Escrow.json';
 import { useGeneralStore, GeneralProps } from "@/hooks/useGeneral";
+import ChatBox from './ChatBox';
+import { useXmtp } from '@/hooks/useXmtp';
 
 const MotionBox = motion(Box);
 interface SellerOrderExecutionProps {
@@ -31,6 +33,7 @@ interface SellerOrderExecutionProps {
 const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   orderDetails,
 }) => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const [currentStep, setCurrentStep] = useState(1);
   const [chatMessages, setChatMessages] = useState<
     {
@@ -45,8 +48,7 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   const [latestEscrowId, setLatestEscrowId] = useState<number | null>(null);
   const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
   const [isWeb3AuthReady, setIsWeb3AuthReady] = useState(false);
-  const { isOpen, onOpen, onClose } = useDisclosure();
-
+  const { client, isInitialized } = useXmtp();
   const toast = useToast();
   const web3AuthProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
@@ -259,33 +261,16 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
               </Box>
               <VStack flex={1} p={6} align="stretch" spacing={4}>
                 <Text fontSize="xl" fontWeight="bold">
-                  Chat
+                  Chat with Buyer
                 </Text>
-                <Box
-                  flex={1}
-                  overflowY="auto"
-                  bg="gray.800"
-                  p={4}
-                  borderRadius="md"
-                  minHeight="400px"
-                >
-                  {chatMessages.map((msg, index) => (
-                    <Text key={index}>
-                      <strong>{msg.sender}:</strong> {msg.message}
-                    </Text>
-                  ))}
-                </Box>
-                <Flex>
-                  <Input
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    mr={2}
+                {isInitialized && orderDetails?.buyer_address && orderDetails?._id ? (
+                  <ChatBox 
+                    recipientAddress={orderDetails.buyer_address} 
+                    orderID={orderDetails._id.toString()} 
                   />
-                  <Button onClick={handleSendMessage} colorScheme="purple">
-                    Send
-                  </Button>
-                </Flex>
+                ) : (
+                  <Text>Initializing XMTP client...</Text>
+                )}
               </VStack>
             </Flex>
           </Flex>

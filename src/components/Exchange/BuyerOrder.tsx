@@ -20,6 +20,8 @@ import OrderInfoCard from "./OrderInfoCard";
 import { ethers } from 'ethers';
 import EscrowABI from '../../../smart_contracts/contracts/artifacts/Escrow.json';
 import { useGeneralStore, GeneralProps } from "@/hooks/useGeneral";
+import ChatBox from './ChatBox';
+import { useXmtp } from '@/hooks/useXmtp';
 
 const MotionBox = motion(Box);
 interface BuyerOrderExecutionProps {
@@ -47,6 +49,8 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
   const web3AuthProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
   );
+
+  const { isInitialized } = useXmtp();
 
 /*
   const initializeWeb3Auth = async () => {
@@ -168,16 +172,13 @@ const escrowContractFunction = async () => {
   };
 
   const releaseEscrow = async (contract: ethers.Contract, EscrowID: number) => {
-
-
-    // if (latestEscrowId === null) {
-    //   console.error("Latest escrow ID is not set");
-    //   return;
-    // }
-
     try {
+      if (!contract.runner?.provider) {
+        throw new Error("Contract provider is not available");
+      }
       // Get the current user's address
-      const signer = await contract.runner.provider.getSigner();
+      const provider = new ethers.BrowserProvider(web3AuthProvider.provider);
+      const signer = await provider.getSigner();
       console.log("signer", signer);
       const userAddress = await signer.getAddress();
       console.log("userAddress", userAddress);  
@@ -216,7 +217,7 @@ const escrowContractFunction = async () => {
       console.error("Failed to release escrow:", error);
       toast({
         title: "Error",
-        description: `Failed to release escrow: ${error.message}`,
+        description: `Failed to release escrow: ${(error as Error).message}`,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -365,33 +366,13 @@ const escrowContractFunction = async () => {
               </Box>
               <VStack flex={1} p={6} align="stretch" spacing={4}>
                 <Text fontSize="xl" fontWeight="bold">
-                  Chat
+                  Chat with Seller
                 </Text>
-                <Box
-                  flex={1}
-                  overflowY="auto"
-                  bg="gray.800"
-                  p={4}
-                  borderRadius="md"
-                  minHeight="400px"
-                >
-                  {chatMessages.map((msg, index) => (
-                    <Text key={index}>
-                      <strong>{msg.sender}:</strong> {msg.message}
-                    </Text>
-                  ))}
-                </Box>
-                <Flex>
-                  <Input
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    mr={2}
-                  />
-                  <Button onClick={handleSendMessage} colorScheme="purple">
-                    Send
-                  </Button>
-                </Flex>
+                {isInitialized && orderDetails?.seller_address && orderDetails?._id ? (
+                  <ChatBox recipientAddress={orderDetails.seller_address} orderID={orderDetails._id.toString()} />
+                ) : (
+                  <Text>Initializing XMTP client...</Text>
+                )}
               </VStack>
             </Flex>
           </Flex>
