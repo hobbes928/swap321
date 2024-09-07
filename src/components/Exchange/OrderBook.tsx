@@ -37,7 +37,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   onClose,
   order,
 }) => {
-  const [walletAddress, setWalletAddress] = useState("");
+  const [isInProgress, setIsInProgress] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isValidated, setIsValidated] = useState(false);
   const toast = useToast();
@@ -63,6 +63,14 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const handleConfirm = async () => {
     try {
       if (order) {
+        if (order?.status === "in-progress") {
+          return toast({
+            title: "The order is in progress.",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
         setIsLoading(true);
         router.push(`/orders/${order._id}`);
       }
@@ -83,6 +91,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       setIsValidated(true);
     } else {
       setIsValidated(false);
+    }
+    if (order) {
+      setIsInProgress(order?.status === "in-progress");
     }
   }, [general]);
 
@@ -109,6 +120,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         <ModalCloseButton color="white" />
         <ModalBody>
           <VStack spacing={6} align="stretch">
+            <HStack justify="space-between">
+              <Text>Order ID:</Text>
+              <Text>{order?._id}</Text>
+            </HStack>
             <HStack justify="space-between">
               <Text>Order Type:</Text>
               <Flex alignItems="center">
@@ -164,8 +179,13 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 as={motion.button}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                disabled={isInProgress}
               >
-                {isValidated ? "Confirm Order" : "Connect Wallet"}
+                {isValidated
+                  ? isInProgress
+                    ? "In Progress"
+                    : "Confirm Order"
+                  : "Connect Wallet"}
               </Button>
             )}
           </VStack>

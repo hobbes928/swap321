@@ -1,7 +1,4 @@
-import { useState, useEffect } from "react";
-import { Web3Auth } from "@web3auth/modal";
-import { CHAIN_NAMESPACES, IProvider } from "@web3auth/base";
-import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+import { useEffect, useState } from "react";
 import {
   Box,
   Flex,
@@ -25,6 +22,9 @@ import { useGeneralStore, GeneralProps } from "@/hooks/useGeneral";
 import ChatBox from './ChatBox';
 import { useXmtp } from '@/hooks/useXmtp';
 
+import { escrowContractFunction } from "@/utils/utlis";
+
+
 const MotionBox = motion(Box);
 interface SellerOrderExecutionProps {
   orderDetails: IOrder | undefined;
@@ -42,6 +42,7 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
     }[]
   >([]);
   const [inputMessage, setInputMessage] = useState("");
+
   const [transactionId, setTransactionId] = useState("");
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [escrowContract, setEscrowContract] = useState<ethers.Contract | null>(null);
@@ -49,78 +50,114 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
   const [isWeb3AuthReady, setIsWeb3AuthReady] = useState(false);
   const { client, isInitialized } = useXmtp();
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [confirmed, setConfirmed] = useState(false);
+
   const toast = useToast();
-  const web3AuthProvider = useGeneralStore(
+  const web3authProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
   );
-
-  const escrowContractFunction = async () => {
-
-    try {
-      if (!web3AuthProvider) {
-        throw new Error("Failed to connect to Web3Auth");
-      }
-      console.log("before provider");
-      const provider = new ethers.BrowserProvider(web3AuthProvider.provider);
-      console.log("after provider");
-      const signer = await provider.getSigner();
-      console.log("signer", signer);
-      const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS!, EscrowABI, signer);
-      console.log("contract", contract);
-    
-      setEscrowContract(contract);
-      return contract;
-    } catch (error) {
-      console.error("Failed to initialize the contract:", error);
-  
-  
-    }}
-  
-  const initializeContract = async () => {
-  
-    try {
-    
-      // Get the latest escrow ID
-      const contract = await escrowContractFunction();
-      if (!contract) {
-        console.log("contract not initialized");
-        return;
-      }
-  
-    } catch (error) {
-      console.error("Failed to initialize the contract:", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to the Escrow contract. Please check your Web3Auth connection.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+  const startTransaction = async () => {
+    if (!web3authProvider) {
+      throw new Error("Failed to connect to Web3Auth");
     }
-  };
+    const contract = await escrowContractFunction(web3authProvider.provider);
 
-  const startTransaction = async (buyerAddress: string) => {
-    const contract = await escrowContractFunction();
-    if (contract) {
+    if (contract && orderDetails) {
+      const buyerAddress = orderDetails.buyer_address as string;
       await startEscrow(contract, buyerAddress);
     } else {
       console.error("Failed to initialize contract");
       // Optionally, show an error toast here
     }
   };
-
-  const startEscrow = async (contract: ethers.Contract, buyerAddress: string) => {
+  const [confirming, setConfirming] = useState(false);
+  const startEscrow = async (
+    contract: ethers.Contract,
+    buyerAddress: string
+  ) => {
     try {
       // Convert the amount to wei
-      const amountInWei = ethers.parseEther(orderDetails?.amount.toString() || "0");
-      
-      const tx = await contract.startEscrow(buyerAddress, amountInWei, {
-        value: amountInWei
+      setConfirming(true);
+      toast({
+        title: "Confirm & Deposit",
+        description: "Confirming & Depositting",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
       });
+      const amountInWei = ethers.parseEther(orderDetails?.amount || "0");
+
+      const tx = await contract.startEscrow(
+        buyerAddress,
+        amountInWei,
+        orderDetails?._id || "0",
+        {
+          value: amountInWei,
+        }
+      );
+
       await tx.wait();
+      toast({
+        title: "Confirm & Deposit",
+        description: "Confirmed & Deposited",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      const escrow_id = await contract.getEscrowIdByOrderId(orderDetails?._id);
+      console.log("escrow_id:", escrow_id);
+
+      handleUpdatingOrder(Number(escrow_id));
       console.log("Escrow started successfully");
+      toast({
+        title: "Confirm & Deposit",
+        description: "Escrow started successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (error) {
       console.error("Failed to start escrow:", error);
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleUpdatingOrder = async (escrow_id = 0) => {
+    if (!orderDetails) return;
+
+    try {
+      const data = {
+        ...orderDetails,
+        escrow_id: escrow_id,
+        updated_at: Date.now(),
+      };
+
+      const response = await fetch("/api/Orders", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response && response.ok) {
+        console.log("Order updated successfully!");
+      } else {
+        console.error("Failed to update order");
+      }
+    } catch (error) {
+      console.error("Error updating order:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again later.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -147,10 +184,17 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
       });
     }
   };
+  useEffect(() => {
+    if (orderDetails) {
+      setBuyerAddress(orderDetails.buyer_address as string);
+      console.log("orderDetails.escrow_id > 0:", orderDetails.escrow_id > 0);
+
+      setConfirmed(orderDetails.escrow_id > 0);
+    }
+  }, [orderDetails]);
+  const [buyerAddress, setBuyerAddress] = useState("");
 
   if (!orderDetails) return null;
-
-  const [buyerAddress, setBuyerAddress] = useState("");
 
   return (
     <>
@@ -195,19 +239,24 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                   <Box>
                     <OrderInfoCard orderDetails={orderDetails} />
                     <Box mt={4}>
-                      <Input
+                      {/* <Input
                         value={buyerAddress}
                         onChange={(e) => setBuyerAddress(e.target.value)}
                         placeholder="Enter Buyer Wallet Address"
                         mb={4}
-                      />
-                      <Button
-                        onClick={() => startTransaction(buyerAddress)}
-                        colorScheme="purple"
-                        width="full"
-                      >
-                        Confirm & Deposit
-                      </Button>
+                      /> */}
+                      {buyerAddress ? (
+                        <Button
+                          onClick={() => startTransaction()}
+                          colorScheme="purple"
+                          width="full"
+                          disabled={confirmed}
+                        >
+                          Confirm & Deposit
+                        </Button>
+                      ) : (
+                        <p>Wait for buyer to confirm the order</p>
+                      )}
                     </Box>
                   </Box>
 
@@ -223,10 +272,14 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                       >
                         2
                       </Box>
-                      <Text fontWeight="bold">Awaiting Seller Payment Verification</Text>
+                      <Text fontWeight="bold">
+                        Awaiting Seller Payment Verification
+                      </Text>
                     </HStack>
                     <Box bg="gray.800" p={4} borderRadius="md">
-                      <Text color="gray.400">Payment Verified Escrow Released</Text>
+                      <Text color="gray.400">
+                        Payment Verified Escrow Released
+                      </Text>
                     </Box>
                   </Box>
 

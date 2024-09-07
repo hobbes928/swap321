@@ -6,6 +6,7 @@ interface IOrder extends Document {
   currency: string;
   rate: string;
   price: string;
+  escrow_id: number;
   received_amount: string;
   seller_email: string;
   seller_address: string;
@@ -13,7 +14,7 @@ interface IOrder extends Document {
   buyer_address?: string; // Optional field
   blockchain_tx?: string; // Optional field
   PG_tx?: string; // Optional field
-  status: "pending" | "completed" | "failed";
+  status: "pending" | "completed" | "failed" | "in-progress";
   created_at: Date;
   updated_at: Date;
 }
@@ -34,6 +35,10 @@ const OrdersSchema = new Schema<IOrder>({
   },
   price: {
     type: String,
+    required: false, // The price of the asset at the time of the order
+  },
+  escrow_id: {
+    type: Number,
     required: false, // The price of the asset at the time of the order
   },
   received_amount: {
@@ -66,7 +71,7 @@ const OrdersSchema = new Schema<IOrder>({
   },
   status: {
     type: String,
-    enum: ["pending", "completed", "failed"],
+    enum: ["pending", "completed", "failed", "in-progress"],
     default: "pending", // Default order status
   },
   created_at: {

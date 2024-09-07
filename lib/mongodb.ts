@@ -3,15 +3,11 @@ import mongoose from "mongoose";
 const MONGODB_URI = process.env.MONGODB_URI;
 
 type Cached = {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
+  conn: mongoose.Mongoose | null;
+  promise: Promise<mongoose.Mongoose> | null;
 };
 
-declare global {
-  var mongoose: Cached;
-}
-
-let cached: Cached = global.mongoose || { conn: null, promise: null };
+let cached: any= global.mongoose || { conn: null, promise: null };
 
 const connectMongoDB = async () => {
   try {
