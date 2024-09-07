@@ -63,14 +63,33 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const handleConfirm = async () => {
     try {
       if (order) {
-        if (order?.status === "in-progress") {
+        const storedUser = localStorage.getItem("user");
+
+        if (!storedUser) {
           return toast({
-            title: "The order is in progress.",
+            title: "User information not found. Please sign in again.",
             status: "error",
             duration: 3000,
             isClosable: true,
           });
         }
+
+        const parsedUser = JSON.parse(storedUser);
+
+        if (
+          parsedUser?.email != order?.buyer_email &&
+          parsedUser?.email != order?.seller_email
+        ) {
+          if (order?.status === "in-progress") {
+            return toast({
+              title: "The order is in progress.",
+              status: "error",
+              duration: 3000,
+              isClosable: true,
+            });
+          }
+        }
+
         setIsLoading(true);
         router.push(`/orders/${order._id}`);
       }
