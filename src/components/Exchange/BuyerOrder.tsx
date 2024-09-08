@@ -38,6 +38,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
   const toast = useToast();
   console.log("orderDetails:", orderDetails);
 
+  let toastLoading: any;
   const web3AuthProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
   );
@@ -56,6 +57,12 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       }
 
       console.log("verifying transaction");
+      toastLoading = toast({
+        title: "Verifying Transaction",
+        description: "Please wait...",
+        status: "loading",
+        duration: null,
+      });
       const response = await fetch("/api/verifyPayPalTransaction", {
         method: "POST",
         headers: {
@@ -64,6 +71,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
         body: JSON.stringify({ transactionId }),
       });
 
+      toast.close(toastLoading);
       if (!response.ok) {
         throw new Error("Failed to verify transaction");
       }
@@ -89,6 +97,8 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
         verified: false,
         error: "Failed to verify transaction.",
       });
+    } finally {
+      toast.close(toastLoading);
     }
   };
 
@@ -99,10 +109,17 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
     try {
       console.log("Releasing escrow with ID:", escrow_id);
       const tx = await contract.releaseEscrow(escrow_id);
+      toastLoading = toast({
+        title: "Releasing Escrow",
+        description: "Please wait...",
+        status: "loading",
+        duration: null,
+      });
       console.log("Releasing escrow...");
       await tx.wait();
       console.log("Escrow released successfully");
       setEscrowReleased(true);
+      toast.close(toastLoading);
       toast({
         title: "Escrow Released",
         description: "The funds have been released to the payee.",
@@ -112,22 +129,38 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       });
     } catch (error: any) {
       console.error("Failed to release escrow:", error);
+      if (error.message?.toLowerCase().includes("no funds in escrow")) {
+        error.message = "No funds in escrow";
+      } else {
+        error.message = "Failed to release escrow.";
+      }
       toast({
-        title: "Error",
-        description: `Failed to release escrow: ${error?.message}`,
+        title: "Failed to release escrow",
+        description: error?.message,
         status: "error",
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      toast.close(toastLoading);
     }
   };
 
   const returnFunds = async (contract: ethers.Contract, escrow_id: number) => {
     try {
+      toastLoading = toast({
+        title: "Refunding Escrow",
+        description: "Please wait...",
+        status: "loading",
+        duration: null,
+      });
       const tx = await contract.returnFunds(escrow_id);
       await tx.wait();
       console.log("Escrow refunded");
       setEscrowReturned(true);
+
+      toast.close(toastLoading);
+
       toast({
         title: "Escrow Refunded",
         description: "The funds have been refunded to the payee.",
@@ -144,6 +177,8 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      toast.close(toastLoading);
     }
   };
 

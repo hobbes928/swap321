@@ -40,6 +40,8 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   const [escrowReturned, setEscrowReturned] = useState(false);
 
   const toast = useToast();
+  let toastLoading: any;
+
   const web3authProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
   );
@@ -65,12 +67,12 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
     try {
       // Convert the amount to wei
       setConfirming(true);
-      toast({
+
+      toastLoading = toast({
         title: "Confirm & Deposit",
-        description: "Confirming & Depositting",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
+        description: "Confirming & Depositting, Please wait...",
+        status: "loading",
+        duration: null,
       });
       const amountInWei = ethers.parseEther(orderDetails?.amount || "0");
 
@@ -84,6 +86,8 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
       );
 
       await tx.wait();
+      toast.close(toastLoading);
+
       toast({
         title: "Confirm & Deposit",
         description: "Confirmed & Deposited",
@@ -106,9 +110,17 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
         duration: 3000,
         isClosable: true,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to start escrow:", error);
+      toast({
+        title: "Failed to start escrow",
+        description: error?.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     } finally {
+      toast.close(toastLoading);
       setConfirming(false);
     }
   };
