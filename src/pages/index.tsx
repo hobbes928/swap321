@@ -28,16 +28,16 @@ const HomePage: React.FC = () => {
     };
   }
 
-  // API route to fetch total trading volume
+  // Function to fetch total trading volume
   const fetchTotalVolume = async () => {
     try {
-      const response = await fetch("https://api.coingecko.com/api/v3/global");
+      const response = await fetch("/api/coingecko");
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.statusText}`);
       }
 
       const data: GlobalData = await response.json();
-      const totalVolume = data.data.total_volume.usd;
+      const totalVolume = data.data.total_volume.usd || 0;
       setTotalVolume(totalVolume);
     } catch (error) {
       console.error(error);
