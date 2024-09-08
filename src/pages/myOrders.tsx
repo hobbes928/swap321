@@ -48,7 +48,7 @@ const MyOrders: React.FC = () => {
       const parsedUser = JSON.parse(storedUser);
 
       const data = {
-        seller_email: parsedUser?.email,
+        email: parsedUser?.email,
         getMyOrders: true,
       };
 

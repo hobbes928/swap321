@@ -17,8 +17,12 @@ export default async function handler(
       }
       if (orderData?.getMyOrders) {
         const orders = await Orders.find({
-          seller_email: orderData?.seller_email,
+          $or: [
+            { seller_email: orderData?.email },
+            { buyer_email: orderData?.email }
+          ]
         });
+        
         return res.json({ orders });
       }
       const newOrder = await Orders.create(orderData);
