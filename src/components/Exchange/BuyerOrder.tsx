@@ -19,6 +19,11 @@ import { useXmtp } from "@/hooks/useXmtp";
 import { ethers } from "ethers";
 import { escrowContractFunction } from "@/utils/utlis";
 import { GeneralProps, useGeneralStore } from "@/hooks/useGeneral";
+import {
+  isTransactionValid,
+  paypalTransactionDetails,
+} from "@/utils/paypalTransaction";
+import { fetchEthPrice } from "@/utils/fetchETHprice";
 
 const MotionBox = motion(Box);
 interface BuyerOrderExecutionProps {
@@ -78,6 +83,20 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       const data = await response.json();
 
       setVerificationResult(data);
+      console.log("data", data);
+      const extractedDetails = paypalTransactionDetails(data);
+
+      if (extractedDetails) {
+        const ethPrice = await fetchEthPrice();
+        const isValid = isTransactionValid(
+          extractedDetails,
+          orderDetails,
+          Number(ethPrice) || 0
+        );
+        console.log("Is transaction valid:", isValid);
+      }
+
+      console.log("Tx Details:", extractedDetails);
 
       if (data.verified) {
         // If PayPal transaction is verified, call releaseEscrow
