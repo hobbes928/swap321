@@ -22,6 +22,9 @@ import ChatBox from "./ChatBox";
 import { useXmtp } from "@/hooks/useXmtp";
 
 import { escrowContractFunction } from "@/utils/utlis";
+import { CHAIN_NAMESPACES } from "@web3auth/base";
+import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+import { Web3Auth } from "@web3auth/modal";
 
 const MotionBox = motion(Box);
 interface SellerOrderExecutionProps {
@@ -45,11 +48,43 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   const web3authProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
   );
+  const initWeb3AuthFromLocalStorage = async () => {
+    try {
+      const chainConfig = {
+        chainNamespace: CHAIN_NAMESPACES.EIP155,
+        chainId: "0xaa36a7", // Sepolia testnet
+        rpcTarget: process.env.NEXT_PUBLIC_RPC_URL || "",
+        displayName: "Ethereum Sepolia Testnet",
+        blockExplorer: "https://sepolia.etherscan.io",
+        ticker: "ETH",
+        tickerName: "Ethereum",
+      };
+
+      const privateKeyProvider = new EthereumPrivateKeyProvider({
+        config: { chainConfig },
+      });
+
+      // Recreate the Web3Auth instance
+      const web3authInstance = new Web3Auth({
+        clientId: process.env.NEXT_PUBLIC_CLIENT_ID || "",
+        web3AuthNetwork: "sapphire_devnet",
+        chainConfig,
+        privateKeyProvider,
+      });
+
+      await web3authInstance.initModal();
+      return web3authInstance.provider;
+    } catch (error) {
+      console.error("Failed to fetch wallet info:", error);
+    }
+  };
+
   const startTransaction = async () => {
-    if (!web3authProvider) {
+    const web3AuthProvider = await initWeb3AuthFromLocalStorage();
+    if (!web3AuthProvider) {
       throw new Error("Failed to connect to Web3Auth");
     }
-    const contract = await escrowContractFunction(web3authProvider.provider);
+    const contract = await escrowContractFunction(web3AuthProvider);
 
     if (contract && orderDetails) {
       const buyerAddress = orderDetails.buyer_address as string;

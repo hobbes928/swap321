@@ -1,5 +1,9 @@
 import { ethers } from "ethers";
 import EscrowABI from "@/contracts/artifacts/Escrow.json";
+import { useCallback } from "react";
+import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from "@web3auth/base";
+import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+import { Web3Auth } from "@web3auth/modal";
 
 /**
  * Slices an Ethereum address to a shorter format.
@@ -22,7 +26,7 @@ export function sliceAddress(address: string): string {
 export const escrowContractFunction = async (web3AuthProvider: any) => {
   try {
     console.log("before provider");
-    const provider = new ethers.BrowserProvider(web3AuthProvider.provider);
+    const provider = new ethers.BrowserProvider(web3AuthProvider);
     console.log("after provider");
     const signer = await provider.getSigner();
     console.log("signer", signer);
@@ -37,3 +41,6 @@ export const escrowContractFunction = async (web3AuthProvider: any) => {
     console.error("Failed to initialize the contract:", error);
   }
 };
+
+
+ 
