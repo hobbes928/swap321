@@ -232,10 +232,10 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
                           </Text>
                         ) : (
                           <Button
-                            onClick={() => startTransaction()}
+                            onClick={confirming ? undefined : startTransaction}
+                            cursor={confirming ? "default" : "pointer"}
                             colorScheme="purple"
                             width="full"
-                            disabled={confirming}
                           >
                             {confirming ? "Processing..." : "Confirm & Deposit"}
                           </Button>
