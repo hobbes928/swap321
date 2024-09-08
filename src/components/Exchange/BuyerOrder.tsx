@@ -35,6 +35,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
 }) => {
   const [transactionId, setTransactionId] = useState("");
   const [verificationResult, setVerificationResult] = useState<any>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const [escrowStarted, setEscrowStarted] = useState(false);
   const [escrowReleased, setEscrowReleased] = useState(false);
@@ -60,7 +61,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
         console.log("contract/order not initialized/created");
         return;
       }
-
+      setConfirming(true);
       console.log("verifying transaction");
       toastLoading = toast({
         title: "Verifying Transaction",
@@ -118,6 +119,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       });
     } finally {
       toast.close(toastLoading);
+      setConfirming(false);
     }
   };
 
@@ -338,13 +340,18 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
                             mb={4}
                           />
                           <Button
-                            onClick={() =>
-                              verifyPayPalTransaction(transactionId)
+                            onClick={
+                              confirming
+                                ? undefined
+                                : () => verifyPayPalTransaction(transactionId)
                             }
+                            cursor={confirming ? "default" : "pointer"}
                             colorScheme="purple"
                             width="full"
                           >
-                            Confirm
+                            {confirming
+                              ? "Confirming & Verifying..."
+                              : "Confirm"}
                           </Button>
                           {verificationResult && (
                             <Box mt={4} p={4} bg="gray.700" borderRadius="md">
