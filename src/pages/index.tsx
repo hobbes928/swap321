@@ -11,11 +11,16 @@ import {
   Tab,
   TabPanels,
   TabPanel,
+  Flex,
 } from "@chakra-ui/react";
 import Footer from "../components/Layout/Footer";
 import Head from "next/head";
 import AllOrders from "./orders";
 import MyOrders from "./myOrders";
+import { motion } from "framer-motion";
+
+const MotionBox = motion(Box);
+const MotionFlex = motion(Flex);
 
 const HomePage: React.FC = () => {
   const [totalVolume, setTotalVolume] = useState(0);
@@ -75,16 +80,21 @@ const HomePage: React.FC = () => {
           opacity={0.05}
           zIndex={-1}
         />
-        {/* <Header /> */}
         <Container maxW="container.xl" centerContent py={8}>
-          <VStack spacing={12} align="center" w="100%">
+          <MotionFlex
+            direction="column"
+            align="center"
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
             <Image
               src="/logo.png"
               alt="Swap321 Logo"
               width={200}
               height={200}
             />
-            <VStack spacing={6} textAlign="center">
+            <VStack spacing={6} textAlign="center" mt={8}>
               <Heading as="h1" size="2xl" color="white">
                 SWAP321
               </Heading>
@@ -92,7 +102,15 @@ const HomePage: React.FC = () => {
                 P2P Crypto to Fiat and Fiat to Crypto Exchange
               </Text>
             </VStack>
-            <Box w="100%" maxW="3xl" textAlign="center">
+            <MotionBox
+              w="100%"
+              maxW="3xl"
+              textAlign="center"
+              mt={8}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
               <Text fontSize="5xl" fontWeight="bold" color="white" mb={4}>
                 {`$${Number(totalVolume).toLocaleString(undefined, {
                   maximumFractionDigits: 2,
@@ -101,24 +119,33 @@ const HomePage: React.FC = () => {
               <Text fontSize="md" color="gray.400">
                 Total trading volume across all markets
               </Text>
-            </Box>
-          </VStack>
+            </MotionBox>
+          </MotionFlex>
         </Container>
-        <Tabs isFitted variant="enclosed">
-          <TabList>
-            <Tab>Live Orders</Tab>
-            <Tab>My Orders</Tab>
-          </TabList>
-
-          <TabPanels>
-            <TabPanel>
-              <AllOrders />
-            </TabPanel>
-            <TabPanel>
-              <MyOrders />
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+        <MotionBox
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+          maxW="container.lg"
+          mx="auto"
+          mt={12}
+          px={4}
+        >
+          <Tabs isFitted variant="enclosed">
+            <TabList mb="1em">
+              <Tab _selected={{ color: "white", bg: "purple.500" }}>Live Orders</Tab>
+              <Tab _selected={{ color: "white", bg: "purple.500" }}>My Orders</Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel>
+                <AllOrders />
+              </TabPanel>
+              <TabPanel>
+                <MyOrders />
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
+        </MotionBox>
         <Footer />
       </Box>
     </>

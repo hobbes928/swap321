@@ -22,7 +22,7 @@ const LiveOrder: React.FC<{
   order: IOrder;
   onClick: () => void;
 }> = ({ index, order, onClick }) => {
-  const time = new Date().toLocaleString();
+  const time = new Date(order.created_at).toLocaleString();
   const isCryptoToFiat = order?.currency === "ETH_TO_USD";
   const controls = useAnimation();
   const isInProgress = order?.status === "in-progress";
