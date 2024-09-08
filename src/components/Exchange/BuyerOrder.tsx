@@ -18,7 +18,7 @@ import ChatBox from "./ChatBox";
 import { useXmtp } from "@/hooks/useXmtp";
 import { ethers } from "ethers";
 import { escrowContractFunction } from "@/utils/utlis";
-import { web3authInstance } from "@/utils/web3Auth";
+import { GeneralProps, useGeneralStore } from "@/hooks/useGeneral";
 
 const MotionBox = motion(Box);
 interface BuyerOrderExecutionProps {
@@ -38,17 +38,18 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
   const toast = useToast();
   console.log("orderDetails:", orderDetails);
 
+  const web3AuthProvider = useGeneralStore(
+    (state: GeneralProps) => state.web3AuthProvider
+  );
+
   const { isInitialized } = useXmtp();
 
   const verifyPayPalTransaction = async (transactionId: string) => {
     try {
-      if (!web3authInstance.connected) await web3authInstance.initModal();
-
-      if (!web3authInstance.provider) {
+      if (!web3AuthProvider) {
         throw new Error("Failed to connect to Web3Auth");
       }
-
-      const contract = await escrowContractFunction(web3authInstance.provider);
+      const contract = await escrowContractFunction(web3AuthProvider.provider);
       if (!contract || !orderDetails) {
         console.log("contract/order not initialized/created");
         return;
