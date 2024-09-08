@@ -32,15 +32,6 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
   orderDetails,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [chatMessages, setChatMessages] = useState<
-    {
-      sender: string;
-      message: string;
-    }[]
-  >([]);
-  const [inputMessage, setInputMessage] = useState("");
-
   const { client, isInitialized } = useXmtp();
 
   const [confirmed, setConfirmed] = useState(false);
@@ -157,29 +148,6 @@ const SellerOrderExecution: React.FC<SellerOrderExecutionProps> = ({
     }
   };
 
-  const handleSendMessage = () => {
-    if (inputMessage.trim()) {
-      setChatMessages([
-        ...chatMessages,
-        { sender: "You", message: inputMessage },
-      ]);
-      setInputMessage("");
-    }
-  };
-
-  const handleCompleteStep = () => {
-    if (currentStep < 2) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      toast({
-        title: "Order Completed",
-        description: "The exchange has been successfully completed.",
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
   useEffect(() => {
     if (orderDetails) {
       setBuyerAddress(orderDetails.buyer_address as string);
