@@ -25,6 +25,8 @@ const LiveOrder: React.FC<{
   const time = new Date().toLocaleString();
   const isCryptoToFiat = order?.currency === "ETH_TO_USD";
   const controls = useAnimation();
+  const isInProgress = order?.status === "in-progress";
+  const isCompleted = order?.status === "completed";
 
   useEffect(() => {
     controls.start({ opacity: 1, y: 0 });
@@ -50,17 +52,43 @@ const LiveOrder: React.FC<{
       initial={{ opacity: 0, y: 20 }}
       animate={controls}
       transition={{ duration: 0.2, delay: index * 0.03 }}
-      whileHover={{
+      whileHover={!isInProgress && !isCompleted ? {
         scale: 1.05,
         boxShadow: "0px 0px 8px rgba(255,255,255,0.2)",
-      }}
-      bg="rgba(60, 60, 60, 0.6)"
+      } : {}}
+      bg={
+        isInProgress
+          ? "rgba(0, 255, 0, 0.2)"
+          : isCompleted
+          ? "rgba(255, 0, 0, 0.2)"
+          : "rgba(60, 60, 60, 0.6)"
+      }
       p={4}
       borderRadius="md"
       w="100%"
-      cursor="pointer"
-      onClick={onClick}
+      cursor={isInProgress || isCompleted ? "default" : "pointer"}
+      onClick={isInProgress || isCompleted ? undefined : onClick}
+      position="relative"
+      overflow="hidden"
     >
+      {isInProgress && (
+        <MotionBox
+          position="absolute"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bg="rgba(0, 255, 0, 0.3)"
+          animate={{
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      )}
       <Flex justifyContent="space-between" alignItems="center">
         <Text>{index + 1}</Text>
         <Text>{sliceAddress(order?.seller_address)}</Text>
