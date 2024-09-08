@@ -28,15 +28,6 @@ interface BuyerOrderExecutionProps {
 const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
   orderDetails,
 }) => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [chatMessages, setChatMessages] = useState<
-    {
-      sender: string;
-      message: string;
-    }[]
-  >([]);
-  const [inputMessage, setInputMessage] = useState("");
-
   const [transactionId, setTransactionId] = useState("");
   const [verificationResult, setVerificationResult] = useState<any>(null);
 
@@ -47,6 +38,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
   const toast = useToast();
   console.log("orderDetails:", orderDetails);
 
+  let toastLoading: any;
   const web3AuthProvider = useGeneralStore(
     (state: GeneralProps) => state.web3AuthProvider
   );
@@ -63,7 +55,14 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
         console.log("contract/order not initialized/created");
         return;
       }
+
       console.log("verifying transaction");
+      toastLoading = toast({
+        title: "Verifying Transaction",
+        description: "Please wait...",
+        status: "loading",
+        duration: null,
+      });
       const response = await fetch("/api/verifyPayPalTransaction", {
         method: "POST",
         headers: {
@@ -72,6 +71,7 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
         body: JSON.stringify({ transactionId }),
       });
 
+      toast.close(toastLoading);
       if (!response.ok) {
         throw new Error("Failed to verify transaction");
       }
@@ -97,6 +97,8 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
         verified: false,
         error: "Failed to verify transaction.",
       });
+    } finally {
+      toast.close(toastLoading);
     }
   };
 
@@ -107,10 +109,17 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
     try {
       console.log("Releasing escrow with ID:", escrow_id);
       const tx = await contract.releaseEscrow(escrow_id);
+      toastLoading = toast({
+        title: "Releasing Escrow",
+        description: "Please wait...",
+        status: "loading",
+        duration: null,
+      });
       console.log("Releasing escrow...");
       await tx.wait();
       console.log("Escrow released successfully");
       setEscrowReleased(true);
+      toast.close(toastLoading);
       toast({
         title: "Escrow Released",
         description: "The funds have been released to the payee.",
@@ -120,22 +129,38 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       });
     } catch (error: any) {
       console.error("Failed to release escrow:", error);
+      if (error.message?.toLowerCase().includes("no funds in escrow")) {
+        error.message = "No funds in escrow";
+      } else {
+        error.message = "Failed to release escrow.";
+      }
       toast({
-        title: "Error",
-        description: `Failed to release escrow: ${error?.message}`,
+        title: "Failed to release escrow",
+        description: error?.message,
         status: "error",
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      toast.close(toastLoading);
     }
   };
 
   const returnFunds = async (contract: ethers.Contract, escrow_id: number) => {
     try {
+      toastLoading = toast({
+        title: "Refunding Escrow",
+        description: "Please wait...",
+        status: "loading",
+        duration: null,
+      });
       const tx = await contract.returnFunds(escrow_id);
       await tx.wait();
       console.log("Escrow refunded");
       setEscrowReturned(true);
+
+      toast.close(toastLoading);
+
       toast({
         title: "Escrow Refunded",
         description: "The funds have been refunded to the payee.",
@@ -152,6 +177,8 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      toast.close(toastLoading);
     }
   };
 
@@ -207,30 +234,6 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
       setEscrowStarted(orderDetails.escrow_id > 0);
     }
   }, [orderDetails]);
-
-  const handleSendMessage = () => {
-    if (inputMessage.trim()) {
-      setChatMessages([
-        ...chatMessages,
-        { sender: "You", message: inputMessage },
-      ]);
-      setInputMessage("");
-    }
-  };
-
-  const handleCompleteStep = () => {
-    if (currentStep < 2) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      toast({
-        title: "Order Completed",
-        description: "The exchange has been successfully completed.",
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
 
   if (!orderDetails) return null;
 
@@ -300,36 +303,42 @@ const BuyerOrderExecution: React.FC<BuyerOrderExecutionProps> = ({
                       <Text fontWeight="bold" color="red.500">
                         Transaction Failed: Escrow funds returned
                       </Text>
-                    ) : escrowStarted && (
-                      <Box bg="gray.800" p={4} borderRadius="md">
-                        <Text color="gray.400">
-                          Send to: {orderDetails?.seller_email}
-                        </Text>
-                        <Text color="gray.400">
-                          Send to: {orderDetails?.seller_address}
-                        </Text>
-                        <Input
-                          value={transactionId}
-                          onChange={(e) => setTransactionId(e.target.value)}
-                          placeholder="Enter PayPal Transaction ID"
-                          mb={4}
-                        />
-                        <Button
-                          onClick={() => verifyPayPalTransaction(transactionId)}
-                          colorScheme="purple"
-                          width="full"
-                        >
-                          Confirm
-                        </Button>
-                        {verificationResult && (
-                          <Box mt={4} p={4} bg="gray.700" borderRadius="md">
-                            <Text fontWeight="bold">Verification Result:</Text>
-                            <pre>
-                              {JSON.stringify(verificationResult, null, 2)}
-                            </pre>
-                          </Box>
-                        )}
-                      </Box>
+                    ) : (
+                      escrowStarted && (
+                        <Box bg="gray.800" p={4} borderRadius="md">
+                          <Text color="gray.400">
+                            Send to: {orderDetails?.seller_email}
+                          </Text>
+                          <Text color="gray.400">
+                            Send to: {orderDetails?.seller_address}
+                          </Text>
+                          <Input
+                            value={transactionId}
+                            onChange={(e) => setTransactionId(e.target.value)}
+                            placeholder="Enter PayPal Transaction ID"
+                            mb={4}
+                          />
+                          <Button
+                            onClick={() =>
+                              verifyPayPalTransaction(transactionId)
+                            }
+                            colorScheme="purple"
+                            width="full"
+                          >
+                            Confirm
+                          </Button>
+                          {verificationResult && (
+                            <Box mt={4} p={4} bg="gray.700" borderRadius="md">
+                              <Text fontWeight="bold">
+                                Verification Result:
+                              </Text>
+                              <pre>
+                                {JSON.stringify(verificationResult, null, 2)}
+                              </pre>
+                            </Box>
+                          )}
+                        </Box>
+                      )
                     )}
                   </Box>
                 </VStack>
